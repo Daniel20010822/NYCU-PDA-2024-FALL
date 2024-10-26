@@ -1,0 +1,42 @@
+#!/bin/bash
+
+# Check if exactly two arguments are provided
+if [ "$#" -ne 2 ]; then
+    echo "Usage: $0 <folder_name> <alpha_value>"
+    exit 1
+fi
+
+# Assign arguments to variables
+folder_name=$1
+alpha_value=$2
+
+# Check if the folder exists
+if [ ! -d "$folder_name" ]; then
+    echo "Error: Folder '$folder_name' does not exist."
+    exit 1
+fi
+
+# Check if the alpha value is between 0 and 1
+if (( $(echo "$alpha_value < 0" | bc -l) )) || (( $(echo "$alpha_value > 1" | bc -l) )); then
+    echo "Error: Alpha value must be between 0 and 1."
+    exit 1
+fi
+
+# Check if the required files exist in the folder
+block_file="$folder_name/$folder_name.block"
+nets_file="$folder_name/$folder_name.nets"
+
+if [ ! -f "$block_file" ] || [ ! -f "$nets_file" ]; then
+    echo "Error: Required files '$folder_name.block' or '$folder_name.nets' are missing in the folder."
+    exit 1
+fi
+
+if [ ! -f "Lab2" ]; then
+    echo "Error: Required files 'Lab2' is missing in the folder."
+    exit 1
+fi
+
+# Execute the command
+./Lab2 "$alpha_value" "$block_file" "$nets_file" output.txt
+./verifier "$alpha_value" "$block_file" "$nets_file" output.txt
+./draw

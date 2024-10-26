@@ -1,0 +1,7 @@
+#!/bin/bash
+
+echo "python3 draw_block_layout.py initial_result.txt initial_result.png"
+python3 draw_block_layout.py initial_result.txt initial_result.png
+echo "python3 draw_block_layout.py final_result.txt final_result.png"
+python3 draw_block_layout.py final_result.txt final_result.png
+
