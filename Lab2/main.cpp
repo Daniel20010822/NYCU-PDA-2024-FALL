@@ -225,25 +225,25 @@ void SequencePair::SA_Init() {
     this->COST = get_RealCost(this->AREA, this->HPWL);
 }
 void SequencePair::SA() {
-    // SA parameters
+    // Total time limit
     int maxTime      = 295;
-    int maxIteration = 10000;
-    double r         = 0.9;
-    double T         = 10;
-    double Tmin      = 1e-6;
+
+    // SA parameters
+    int maxIteration = 100;
+    double r         = 0.95;
+    double T         = 100;
+    double Tmin      = 1e-4;
 
     // Initial values
     bool isCurrentBest = false;
     int totalRnd     = 0;
     int failRnd      = 0;
     int successRnd   = 0;
-    double failRate  = 0;
 
-    int initArea = get_Area();
-    int initHPWL = get_HPWL();
-    int initDeadSpace = get_DeadSpace();
-    double currCost = get_Cost(initArea, initDeadSpace, initHPWL, initArea, initDeadSpace, initHPWL);
-
+    // Calculate Exceed area
+    int exceedW = (this->maxX > this->oW) ? (this->maxX - this->oW) : 0;
+    int exceedH = (this->maxY > this->oH) ? (this->maxY - this->oH) : 0;
+    int exceedArea = this->oH*exceedW + this->oW*exceedH;
 
     // Create a uniform distributions
     uniform_int_distribution<int> randAction(1, 4);
@@ -264,8 +264,153 @@ void SequencePair::SA() {
     }
 
 
-    // Start SA
+    //=======================
+    // First round SA
+    //=======================
     auto start = chrono::high_resolution_clock::now();
+    while (T > Tmin) {
+        for (int iter = 0; iter < maxIteration; iter++) {
+            // Generate a neighbor
+            int action = randAction(engine);
+            int idx1   = randCand1(engine);
+            int idx2   = randCand2(engine);
+
+            // Clone it if previous is downhill move for later backup
+            if (isCurrentBest) {
+                for (int i = 0; i < numBlocks; i++) {
+                    macrosClone[i]->name   = this->macros[i]->name;
+                    macrosClone[i]->LB     = this->macros[i]->LB;
+                    macrosClone[i]->UR     = this->macros[i]->UR;
+                    macrosClone[i]->width  = this->macros[i]->width;
+                    macrosClone[i]->height = this->macros[i]->height;
+                }
+                isCurrentBest = false;
+            }
+
+            switch (action) {
+            case 1:
+                debug << "OP 1: " << posLoci[idx1] << " " << posLoci[idx2] << endl;
+                OP1(idx1, idx2);
+                break;
+            case 2:
+                debug << "OP 2: " << posLoci[idx1] << " " << posLoci[idx2] << endl;
+                OP2(idx1, idx2);
+                break;
+            case 3:
+                debug << "OP 3" << endl;
+                OP3(idx1, idx2);
+                break;
+            case 4:
+                debug << "OP 4" << endl;
+                OP4(idx1);
+                break;
+            default:
+                break;
+            }
+
+            // Calculate new cost
+            seq_to_FP();
+            int newExceedW = (this->maxX > this->oW) ? (this->maxX - this->oW) : 0;
+            int newExceedH = (this->maxY > this->oH) ? (this->maxY - this->oH) : 0;
+            int newExceedArea = this->oH*newExceedW + this->oW*newExceedH;
+            double deltaCost = newExceedArea - exceedArea;
+
+            // Downhill move & Uphill move (accepted)
+            if (deltaCost < 0 || exp(-deltaCost / T) > prob(engine)) {
+                this->AREA = this->get_Area();
+                this->HPWL = this->get_HPWL();
+                this->COST = get_RealCost(this->AREA, this->HPWL);
+                exceedArea = newExceedArea;
+                isCurrentBest = true;
+                successRnd += 1;
+                debug << "Current cost = " << this->COST << endl;
+            }
+            // Uphill move (not accepted)
+            else {
+                // Revert to previous solution
+                switch (action) {
+                case 1:
+                    debug << "Reverse 1: " << posLoci[idx1] << " " << posLoci[idx2] << endl;
+                    OP1(idx1, idx2);
+                    break;
+                case 2:
+                    debug << "Reverse 2: " << posLoci[idx1] << " " << posLoci[idx2] << endl;
+                    OP2(idx1, idx2);
+                    break;
+                case 3:
+                    debug << "Reverse 3" << endl;
+                    OP3(idx1, idx2);
+                    break;
+                case 4:
+                    debug << "Reverse 4" << endl;
+                    OP4(idx1);
+                    break;
+                default:
+                    break;
+                }
+
+                // Restore previous state
+                for (int i = 0; i < numBlocks; i++) {
+                    this->macros[i]->name   = macrosClone[i]->name;
+                    this->macros[i]->LB     = macrosClone[i]->LB;
+                    this->macros[i]->UR     = macrosClone[i]->UR;
+                    this->macros[i]->width  = macrosClone[i]->width;
+                    this->macros[i]->height = macrosClone[i]->height;
+                }
+
+                failRnd += 1;
+
+            }
+            totalRnd += 1;
+
+            auto end = chrono::high_resolution_clock::now();
+            chrono::duration<double> elapsed = end - start;
+
+            if (elapsed.count() > maxTime)
+                return;
+
+            // system("clear");
+            if (DISPLAY_PROGRESS == 1 && totalRnd % 10 == 0) {
+                cout << "\r"
+                     << "T = " << setw(8) << setprecision(6) << T
+                    //  << " | Cost = " << setw(12) << this->COST
+                     << " | Cost = " << setw(10) << setprecision(4) << fixed << exceedArea
+                     << " | " << failRnd << "/" << totalRnd
+                     << " | " << (int)elapsed.count() << " sec" << flush;
+            }
+
+        }
+
+        if (exceedArea == 0) {
+            break;
+        }
+
+        // Cool down the temperature
+        T *= r;
+    }
+    cout << endl;
+
+
+
+    //=======================
+    // Second round SA
+    //=======================
+    maxIteration = 10000;
+    r            = 0.85;
+    T            = 100;
+    Tmin         = 1e-5;
+
+    // Initial values
+    isCurrentBest = false;
+    totalRnd      = 0;
+    failRnd       = 0;
+    successRnd    = 0;
+
+    int initArea = get_Area();
+    int initHPWL = get_HPWL();
+    int initDeadSpace = get_DeadSpace();
+    double currCost = get_Cost(initArea, initDeadSpace, initHPWL, initArea, initDeadSpace, initHPWL);
+
     while (T > Tmin) {
         for (int iter = 0; iter < maxIteration; iter++) {
             // Generate a neighbor
@@ -315,7 +460,7 @@ void SequencePair::SA() {
             double deltaCost = newCost - currCost;
 
             // Downhill move & Uphill move (accepted)
-            if (deltaCost < 0 || exp(-deltaCost / T) > prob(engine)) {
+            if ((deltaCost < 0 || exp(-deltaCost*min(this->maxX, this->maxY) / T) > prob(engine)) && (this->maxX < this->oW && this->maxY < this->oH)) {
                 this->AREA = newArea;
                 this->HPWL = newHPWL;
                 this->COST = get_RealCost(newArea, newHPWL);
@@ -361,7 +506,6 @@ void SequencePair::SA() {
 
             }
             totalRnd += 1;
-            failRate = (double)failRnd/(double)totalRnd;
 
             auto end = chrono::high_resolution_clock::now();
             chrono::duration<double> elapsed = end - start;
@@ -379,11 +523,6 @@ void SequencePair::SA() {
                      << " | " << (int)elapsed.count() << " sec" << flush;
             }
         }
-
-        if (failRate > 0.95){
-            break;
-        }
-
 
         // Cool down the temperature
         T *= r;
@@ -490,15 +629,10 @@ int SequencePair::get_RealCost(int area, int HPWL) {
     return this->alpha*area + (1 - this->alpha)*HPWL;
 }
 double SequencePair::get_Cost(int area, int deadSpace, int HPWL, int initArea, int initDeadSpace, int initHPWL) {
-    int exceedW = (this->maxX > this->oW) ? (this->maxX - this->oW) : 0;
-    int exceedH = (this->maxY > this->oH) ? (this->maxY - this->oH) : 0;
-    int exceedArea = this->oH*exceedW + this->oW*exceedH;
-
-    double normArea = (area > 0) ? (double)area / (double)initArea : 0;
-    double normHPWL = (HPWL > 0) ? (double)HPWL / (double)initHPWL : 0;
-    double normDeadSpace = (deadSpace > 0) ? (double)deadSpace / (double)initDeadSpace : 0;
-
-    return this->alpha*normDeadSpace + (1 - this->alpha)*normHPWL + normArea + exceedArea;
+    double normArea       = (area > 0)       ? (double)area       / (double)initArea : 0;
+    double normHPWL       = (HPWL > 0)       ? (double)HPWL       / (double)initHPWL : 0;
+    double normDeadSpace  = (deadSpace > 0)  ? (double)deadSpace  / (double)initDeadSpace : 0;
+    return this->alpha*normArea + (1 - this->alpha)*normHPWL + normDeadSpace;
 }
 int SequencePair::get_Area() {
     return (this->maxX - this->minX)*(this->maxY - this->minY);
