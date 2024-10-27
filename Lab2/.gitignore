@@ -1,11 +1,6 @@
 .vscode/
-c100/*
-c200/*
-c300/*
-c317/*
-c400/*
+c*/
 example/*
 layout/*
-main2.cpp
-main_backup.cpp
-
+*.txt
+*.HPWL

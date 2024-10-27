@@ -14,6 +14,8 @@ using namespace std;
 
 
 #define DISPLAY_PROGRESS 1
+#define DRAW             0
+
 #define DEBUG 0  // Set to 0 to disable debugging
 #if DEBUG == 1
     #define debug std::cout
@@ -93,7 +95,8 @@ private:
     void OP3(int idx1, int idx2);
     void OP4(int idx1);
     void SA_Init();
-    void SA();
+    void SA_FitOutline(chrono::time_point<chrono::high_resolution_clock> start);
+    void SA_Optimize(chrono::time_point<chrono::high_resolution_clock> start);
     int get_Area();
     int get_DeadSpace();
     int get_HPWL();
@@ -185,28 +188,36 @@ void SequencePair::parse_nets(string filename) {
     netsFile.close();
 }
 void SequencePair::solve() {
+    auto start = chrono::high_resolution_clock::now();
     SA_Init();
-    draw_all_macros("initial_result.txt");
-    SA();
-    draw_all_macros("final_result.txt");
+    if (DRAW) {
+        draw_all_macros("final_result.txt");
+    }
+    SA_FitOutline(start);
+    cout << endl;
+    SA_Optimize(start);
+    cout << endl;
+    if (DRAW) {
+        draw_all_macros("final_result.txt");
+    }
 }
 void SequencePair::SA_Init() {
     // SA_Init: Shuffle the vectors with different engines
-    // shuffle(posLoci.begin(), posLoci.end(), engine);
-    // shuffle(negLoci.begin(), negLoci.end(), engine);
+    shuffle(posLoci.begin(), posLoci.end(), engine);
+    shuffle(negLoci.begin(), negLoci.end(), engine);
 
-    auto widthComparator = [this](const string &a, const string &b) {
-        Macro *macroA = name2macro[a];
-        Macro *macroB = name2macro[b];
-        return macroA->width > macroB->width;
-    };
-    auto heightComparator = [this](const string &a, const string &b) {
-        Macro *macroA = name2macro[a];
-        Macro *macroB = name2macro[b];
-        return macroA->height > macroB->height;
-    };
-    sort(posLoci.begin(), posLoci.end(), widthComparator);
-    sort(negLoci.begin(), negLoci.end(), heightComparator);
+    // auto widthComparator = [this](const string &a, const string &b) {
+    //     Macro *macroA = name2macro[a];
+    //     Macro *macroB = name2macro[b];
+    //     return macroA->width > macroB->width;
+    // };
+    // auto heightComparator = [this](const string &a, const string &b) {
+    //     Macro *macroA = name2macro[a];
+    //     Macro *macroB = name2macro[b];
+    //     return macroA->height > macroB->height;
+    // };
+    // sort(posLoci.begin(), posLoci.end(), widthComparator);
+    // sort(negLoci.begin(), negLoci.end(), heightComparator);
 
     // Update posName2negIdx
     for (int i = 0; i < numBlocks; i++) {
@@ -224,15 +235,15 @@ void SequencePair::SA_Init() {
     this->HPWL = get_HPWL();
     this->COST = get_RealCost(this->AREA, this->HPWL);
 }
-void SequencePair::SA() {
+void SequencePair::SA_FitOutline(chrono::time_point<chrono::high_resolution_clock> start) {
     // Total time limit
     int maxTime      = 295;
 
     // SA parameters
-    int maxIteration = 100;
+    int maxIteration = 200;
     double r         = 0.95;
     double T         = 100;
-    double Tmin      = 1e-4;
+    // double Tmin      = 1e-6;
 
     // Initial values
     bool isCurrentBest = false;
@@ -240,7 +251,7 @@ void SequencePair::SA() {
     int failRnd      = 0;
     int successRnd   = 0;
 
-    // Calculate Exceed area
+    // Calculate Exceed area (Cost)
     int exceedW = (this->maxX > this->oW) ? (this->maxX - this->oW) : 0;
     int exceedH = (this->maxY > this->oH) ? (this->maxY - this->oH) : 0;
     int exceedArea = this->oH*exceedW + this->oW*exceedH;
@@ -263,12 +274,8 @@ void SequencePair::SA() {
         );
     }
 
-
-    //=======================
-    // First round SA
-    //=======================
-    auto start = chrono::high_resolution_clock::now();
-    while (T > Tmin) {
+    // while (T > Tmin) {
+    while (exceedArea > 0) {
         for (int iter = 0; iter < maxIteration; iter++) {
             // Generate a neighbor
             int action = randAction(engine);
@@ -373,7 +380,6 @@ void SequencePair::SA() {
             if (DISPLAY_PROGRESS == 1 && totalRnd % 10 == 0) {
                 cout << "\r"
                      << "T = " << setw(8) << setprecision(6) << T
-                    //  << " | Cost = " << setw(12) << this->COST
                      << " | Cost = " << setw(10) << setprecision(4) << fixed << exceedArea
                      << " | " << failRnd << "/" << totalRnd
                      << " | " << (int)elapsed.count() << " sec" << flush;
@@ -388,28 +394,47 @@ void SequencePair::SA() {
         // Cool down the temperature
         T *= r;
     }
-    cout << endl;
+}
+void SequencePair::SA_Optimize(chrono::time_point<chrono::high_resolution_clock> start) {
+    // Total time limit
+    int maxTime      = 297;
 
-
-
-    //=======================
-    // Second round SA
-    //=======================
-    maxIteration = 10000;
-    r            = 0.85;
-    T            = 100;
-    Tmin         = 1e-5;
+    // SA parameters
+    int maxIteration       = 1000;
+    const double r         = 0.95;
+    double T               = 1;
+    const double Tmin      = 1e-7;
 
     // Initial values
-    isCurrentBest = false;
-    totalRnd      = 0;
-    failRnd       = 0;
-    successRnd    = 0;
+    bool isCurrentBest = false;
+    int totalRnd     = 0;
+    int failRnd      = 0;
+    int successRnd   = 0;
 
+    // Initial Cost
     int initArea = get_Area();
     int initHPWL = get_HPWL();
     int initDeadSpace = get_DeadSpace();
     double currCost = get_Cost(initArea, initDeadSpace, initHPWL, initArea, initDeadSpace, initHPWL);
+
+    // Create a uniform distributions
+    uniform_int_distribution<int> randAction(1, 4);
+    uniform_int_distribution<int> randCand1(0, numBlocks - 1);
+    uniform_int_distribution<int> randCand2(0, numBlocks - 1);
+    uniform_real_distribution<>   prob(0.0, 1.0);
+
+    // Create another macro vector to backup those data
+    vector<Macro *> macrosClone(numBlocks);
+    for (int i = 0; i < numBlocks; i++) {
+        macrosClone[i] = new Macro(
+            this->macros[i]->name,
+            this->macros[i]->width,
+            this->macros[i]->height,
+            this->macros[i]->LB.x,
+            this->macros[i]->LB.y
+        );
+    }
+
 
     while (T > Tmin) {
         for (int iter = 0; iter < maxIteration; iter++) {
@@ -460,7 +485,7 @@ void SequencePair::SA() {
             double deltaCost = newCost - currCost;
 
             // Downhill move & Uphill move (accepted)
-            if ((deltaCost < 0 || exp(-deltaCost*min(this->maxX, this->maxY) / T) > prob(engine)) && (this->maxX < this->oW && this->maxY < this->oH)) {
+            if ((deltaCost < 0 || exp(-deltaCost*1000 / T) > prob(engine)) && (this->maxX < this->oW && this->maxY < this->oH)) {
                 this->AREA = newArea;
                 this->HPWL = newHPWL;
                 this->COST = get_RealCost(newArea, newHPWL);
@@ -516,8 +541,7 @@ void SequencePair::SA() {
             // system("clear");
             if (DISPLAY_PROGRESS == 1 && totalRnd % 10 == 0) {
                 cout << "\r"
-                     << "T = " << setw(8) << setprecision(6) << T
-                    //  << " | Cost = " << setw(12) << this->COST
+                     << "T = " << setw(9) << setprecision(7) << T
                      << " | Cost = " << setw(10) << setprecision(4) << fixed << currCost
                      << " | " << failRnd << "/" << totalRnd
                      << " | " << (int)elapsed.count() << " sec" << flush;
@@ -721,8 +745,7 @@ int main (int argc, char** argv) {
 
     auto start = chrono::high_resolution_clock::now();
     SP.solve();
-    cout << endl;
-    cout << "SEED = " << seed << endl;
+    // cout << "SEED = " << seed << endl;
 
     auto end   = chrono::high_resolution_clock::now();
     chrono::duration<double> elapsed = end - start;

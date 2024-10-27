@@ -1,0 +1,14 @@
+#!/bin/bash
+
+# Define the arrays of parameters
+# folders=("ami33" "ami49" "vda317b" "c100" "c200" "c300" "c317" "c400" "c500")
+# folders=("ami33" "ami49" "vda317b")
+folders=("c100" "c200" "c300" "c400" "c500")
+alpha_values=(0 0.5 1)
+
+# Loop through each folder and alpha value
+for folder in "${folders[@]}"; do
+    for alpha in "${alpha_values[@]}"; do
+        ./run "$folder" "$alpha"
+    done
+done

@@ -1,6 +1,15 @@
 import os
 import random
 
+def write_info(numBlocks, numTerminals, numNets, oArea, oAR):
+    with open(f"./info.txt", "w") as f_info:
+        f_info.write(f"Number of blocks (1 ~ 500): {numBlocks}\n")
+        f_info.write(f"Number of Terminals (1 ~ 500): {numTerminals}\n")
+        f_info.write(f"Number of nets (1 ~ 500): {numNets}\n")
+        f_info.write(f"Outline area factor (1.0x ~ 2.0x): {oArea}\n")
+        f_info.write(f"Outline aspect ratio (0.5 ~ 2): {oAR}\n")
+
+
 def write_block(caseName, outlineWidth, outlineHeight, numBlocks, blocks, numTerminals, terminals):
     with open(f"./{caseName}/{caseName}.block", "w") as f_block:
         f_block.write(f"Outline: {outlineWidth} {outlineHeight}\n")
@@ -61,8 +70,8 @@ def main():
     outlineWidth = int((outlineArea * oAR) ** 0.5)
     outlineHeight = int(outlineArea / outlineWidth)
     # Define imaginary outline dimensions based on the factor
-    imaginaryOutlineWidth  = random.randint(outlineWidth+100, outlineWidth+1000)  
-    imaginaryOutlineHeight = random.randint(outlineHeight+100, outlineHeight+1000) 
+    imaginaryOutlineWidth  = random.randint(outlineWidth+100, outlineWidth+1000)
+    imaginaryOutlineHeight = random.randint(outlineHeight+100, outlineHeight+1000)
 
     # Generate random terminals
     used_positions = set()  # Set to track used terminal positions (x, y)
@@ -71,19 +80,19 @@ def main():
         # Generate a unique terminal position on the sides of the imaginary outline
         while True:
             side = random.choice(['top', 'bottom', 'left', 'right'])  # Choose a random side of the imaginary outline
-            
+
             if side == 'top':
-                x = random.randint(0, imaginaryOutlineWidth)  
+                x = random.randint(0, imaginaryOutlineWidth)
                 y = imaginaryOutlineHeight
             elif side == 'bottom':
-                x = random.randint(0, imaginaryOutlineWidth)  
-                y = 0  
+                x = random.randint(0, imaginaryOutlineWidth)
+                y = 0
             elif side == 'left':
                 x = 0
-                y = random.randint(0, imaginaryOutlineHeight)  
+                y = random.randint(0, imaginaryOutlineHeight)
             else:  # 'right'
                 x = imaginaryOutlineWidth
-                y = random.randint(0, imaginaryOutlineHeight)  
+                y = random.randint(0, imaginaryOutlineHeight)
 
             if (x, y) not in used_positions:  # Ensure the position is unique
                 used_positions.add((x, y))  # Add the unique position to the set
@@ -97,7 +106,7 @@ def main():
         net = random.sample(all_components, net_size)
         nets.append(net)
 
-
+    write_info(numBlocks, numTerminals, numNets, oArea, oAR)
     write_block(caseName, outlineWidth, outlineHeight, numBlocks, blocks, numTerminals, terminals)
     write_nets(caseName, numNets, nets)
 

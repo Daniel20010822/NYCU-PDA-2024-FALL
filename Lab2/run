@@ -15,8 +15,6 @@ if [ ! -d "$folder_name" ]; then
     echo "Error: Folder '$folder_name' does not exist."
     exit 1
 fi
-
-# Check if the alpha value is between 0 and 1
 if (( $(echo "$alpha_value < 0" | bc -l) )) || (( $(echo "$alpha_value > 1" | bc -l) )); then
     echo "Error: Alpha value must be between 0 and 1."
     exit 1
@@ -25,12 +23,10 @@ fi
 # Check if the required files exist in the folder
 block_file="$folder_name/$folder_name.block"
 nets_file="$folder_name/$folder_name.nets"
-
 if [ ! -f "$block_file" ] || [ ! -f "$nets_file" ]; then
     echo "Error: Required files '$folder_name.block' or '$folder_name.nets' are missing in the folder."
     exit 1
 fi
-
 if [ ! -f "Lab2" ]; then
     echo "Error: Required files 'Lab2' is missing in the folder."
     exit 1
@@ -38,5 +34,17 @@ fi
 
 # Execute the command
 ./Lab2 "$alpha_value" "$block_file" "$nets_file" output.txt
-./verifier "$alpha_value" "$block_file" "$nets_file" output.txt
-./draw
+verifier_output=$(./verifier "$alpha_value" "$block_file" "$nets_file" output.txt)
+
+# Count occurrences of "Pass"
+pass_count=$(echo "$verifier_output" | grep -o "Pass" | wc -l)
+
+# Check if there are 5 "Pass" occurrences
+if [ "$pass_count" -eq 5 ]; then
+    # Extract cost value
+    cost=$(echo "$verifier_output" | sed -n '/Your solution/,/Verified/p' | grep "Cost:" | cut -d':' -f2 | xargs)
+    echo -e "\e[0;32m$folder_name $alpha_value: PASS -> $cost\033[39m"
+    # echo $cost
+else
+    echo -e "\e[0;31m$folder_name $alpha_value: FAIL\033[39m"
+fi
