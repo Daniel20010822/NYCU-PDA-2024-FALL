@@ -1,0 +1,9 @@
+Optimizer-and-Legalizer-Co-optimization/
+*case*/
+*.txt
+*.png
+*.nfs*
+LocalRegion*
+PlacementRows*
+Legalizer
+run
