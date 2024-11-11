@@ -12,6 +12,8 @@
 #include <cassert>
 using namespace std;
 
+#define DEBUG 1
+
 class XYCoord {
 public:
     double x = 0;
@@ -77,6 +79,9 @@ public:
     void add_fCell(Cell *fCell)            { fCells.insert(fCell); }
     void erase_PR(PlacementRow *PR)        { PRs.erase(PR); }
     void erase_mCell(Cell *mCell)          { mCells.erase(mCell); }
+    void clear_PRs()                       { PRs.clear(); }
+    void clear_mCells()                    { mCells.clear(); }
+    void clear_fCells()                    { fCells.clear(); }
 };
 
 class PlacementLegalizer {
@@ -96,7 +101,7 @@ private:
 
     PlacementRow* trim_placement_row(PlacementRow *PR, double leftX, double rightX);
     PlacementRow* get_placement_row_by_point(XYCoord point);
-    void search_local_region(Cell *mergedCell);
+    vector<Row*> search_local_region(Cell *mergedCell);
     // void write_post_lg(string filename);
 public:
     PlacementLegalizer() {}
@@ -104,6 +109,7 @@ public:
     void parse_opt(string filename);
     void write_post_lg(string filename);
     void write_lg(string filename);
+    void write_lg(string filename, vector<Row*> localRows, XYCoord LB, XYCoord UR);
     void write_lg(string filename, vector<PlacementRow *> localPRs, vector<Cell *> localMCells, vector<Cell *> localFCells, XYCoord LB, XYCoord UR);
     void place_fCells();
 };
@@ -145,6 +151,27 @@ void PlacementLegalizer::write_lg(string filename, vector<PlacementRow *> localP
     }
     for (auto PR : localPRs) {
         f_lg << "PlacementRows " << int(PR->startP.x) << " " << int(PR->startP.y) << " " << int(PR->siteWidth) << " " << int(PR->siteHeight) << " " << PR->totalNumOfSites << endl;
+    }
+
+    f_lg.close();
+}
+void PlacementLegalizer::write_lg(string filename, vector<Row*> localRows, XYCoord LB, XYCoord UR) {
+    ofstream f_lg(filename);
+
+    f_lg << "Alpha " << this->alpha << endl;
+    f_lg << "Beta " << this->beta << endl;
+    f_lg << "DieSize " << LB.x << " " << LB.y << " " << UR.x << " " << UR.y << endl;
+
+    for (auto &row : localRows) {
+        for (auto mCell : row->get_mCells()) {
+            f_lg << mCell->name << " " << mCell->LB.x << " " << mCell->LB.y << " " << mCell->width << " " << mCell->height << " " << "NOTFIX" << endl;
+        }
+        for (auto fCell : row->get_fCells()) {
+            f_lg << fCell->name << " " << fCell->LB.x << " " << fCell->LB.y << " " << fCell->width << " " << fCell->height << " " << "FIX" << endl;
+        }
+        for (auto PR : row->get_PRs()) {
+            f_lg << "PlacementRows " << int(PR->startP.x) << " " << int(PR->startP.y) << " " << int(PR->siteWidth) << " " << int(PR->siteHeight) << " " << PR->totalNumOfSites << endl;
+        }
     }
 
     f_lg.close();
@@ -273,7 +300,9 @@ void PlacementLegalizer::parse_opt(string filename) {
         this->cell2row[mergedCell] = allRows[lby];
 
         // Find local region
-        search_local_region(mergedCell);
+        vector<Row*> localRows = search_local_region(mergedCell);
+        if (DEBUG) write_lg("LocalRegion.lg", localRows, XYCoord(this->DieLB), XYCoord(this->DieUR));
+
         round++;
         if (round == 2)
             break; // TODO: remove
@@ -335,7 +364,7 @@ PlacementRow* PlacementLegalizer::get_placement_row_by_point(XYCoord point) {
     return nullptr;
 }
 
-void PlacementLegalizer::search_local_region(Cell *mergedCell) {
+vector<Row*> PlacementLegalizer::search_local_region(Cell *mergedCell) {
 
     XYCoord center = mergedCell->LB;
     double halfWidth = mergedCell->width * 20;
@@ -352,21 +381,29 @@ void PlacementLegalizer::search_local_region(Cell *mergedCell) {
     if (upBound    > this->DieUR.y) {upBound    = this->DieUR.y;}
     if (downBound  < this->DieLB.y) {downBound  = this->DieLB.y;}
 
+    vector<Row*> localRows;
     vector<PlacementRow*> localPRs;
     vector<Cell*>         localMCells;
     vector<Cell*>         localFCells;
 
     // Find all placement rows in the local region
     for (auto it = allRows.lower_bound(downBound); it != allRows.upper_bound(upBound); ++it) {
+        Row* newRow = new Row(*it->second); // Deep copy of the Row
+
+        // Clear the copied row's containers since we'll add filtered copies
+        newRow->clear_PRs();
+        newRow->clear_mCells();
+        newRow->clear_fCells();
+
         for (auto PR : it->second->get_PRs()) {
             if ((leftBound <= PR->startX() && PR->startX() <= rightBound) &&
                 (downBound <= PR->startP.y && PR->startP.y + PR->siteHeight <= upBound)) {
-                // Create a new PlacementRow with copied values
                 PlacementRow* newPR = new PlacementRow(
                     PR->startP.x, PR->startP.y,
                     PR->siteWidth, PR->siteHeight,
                     PR->totalNumOfSites
                 );
+                newRow->add_PR(newPR);
                 localPRs.push_back(newPR);
             }
         }
@@ -375,6 +412,7 @@ void PlacementLegalizer::search_local_region(Cell *mergedCell) {
             if (leftBound <= mCell->LB.x && mCell->LB.x <= rightBound &&
                 downBound <= mCell->LB.y && mCell->LB.y + mCell->height <= upBound) {
                 Cell* newMCell = new Cell(mCell->name, mCell->LB.x, mCell->LB.y, mCell->width, mCell->height, mCell->isFixed);
+                newRow->add_mCell(newMCell);
                 localMCells.push_back(newMCell);
             }
         }
@@ -383,14 +421,15 @@ void PlacementLegalizer::search_local_region(Cell *mergedCell) {
             if (leftBound <= fCell->LB.x && fCell->LB.x <= rightBound &&
                 downBound <= fCell->LB.y && fCell->LB.y + fCell->height <= upBound) {
                 Cell* newFCell = new Cell(fCell->name, fCell->LB.x, fCell->LB.y, fCell->width, fCell->height, fCell->isFixed);
+                newRow->add_fCell(newFCell);
                 localFCells.push_back(newFCell);
             }
         }
+
+        localRows.push_back(newRow);
     }
 
-    write_lg("LocalRegion.lg", localPRs, localMCells, localFCells, XYCoord(leftBound, downBound), XYCoord(rightBound, upBound));
-
-    // // TODO:
+    return localRows;
 }
 void PlacementLegalizer::place_fCells() {
     for (auto fCell : allFCells) {
@@ -432,9 +471,9 @@ int main(int argc, char** argv) {
     PlacementLegalizer LG;
 
     LG.parse_init_lg(argv[1]);
-    LG.write_lg("Init.lg");
+    if (DEBUG) LG.write_lg("Init.lg");
     LG.place_fCells();
-    LG.write_lg("PlaceFCells.lg");
+    if (DEBUG) LG.write_lg("PlaceFCells.lg");
     LG.parse_opt(argv[2]);
 
     return 0;
