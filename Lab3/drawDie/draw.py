@@ -10,6 +10,7 @@ from matplotlib.collections import PatchCollection
 FCELL_COLOR = "#FF0000"
 MCELL_COLOR = "#00FF00"
 PR_COLOR    = "#0000FF"
+BG_COLOR    = "#DDDDDD"
 
 
 def parse_arguments():
@@ -39,7 +40,7 @@ def setup_plot(die_lb_x, die_lb_y, die_ur_x, die_ur_y):
     ax.set_xlim(die_lb_x, die_ur_x)
     ax.set_ylim(die_lb_y, die_ur_y)
     ax.set_aspect('equal')  # Equal aspect ratio
-    ax.set_facecolor('#EEEEEE')
+    ax.set_facecolor(BG_COLOR)
     return fig, ax
 
 def parse_input_lg(file_name):

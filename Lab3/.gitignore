@@ -1,8 +1,11 @@
 Optimizer-and-Legalizer-Co-optimization/
+backup/
 *case*/
 *.txt
 *.png
 *.nfs*
+*.lg
+*.opt
 LocalRegion*
 PlacementRows*
 Legalizer

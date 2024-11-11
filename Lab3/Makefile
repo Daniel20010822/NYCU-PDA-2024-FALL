@@ -13,4 +13,4 @@ $(TARGET): main.cpp
 	$(CXX) $(CXXFLAGS) $(WARNINGS) main.cpp -o $(TARGET)
 
 clean:
-	rm -rf $(TARGET) *.txt *.png *.blocks
+	rm -rf $(TARGET) *.txt *.png *.blocks *.lg
