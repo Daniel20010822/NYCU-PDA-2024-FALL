@@ -102,6 +102,7 @@ private:
     PlacementRow* trim_placement_row(PlacementRow *PR, double leftX, double rightX);
     PlacementRow* get_placement_row_by_point(XYCoord point);
     vector<Row*> search_local_region(Cell *mergedCell);
+    bool is_mCell_inside_PR(Cell *mCell);
     // void write_post_lg(string filename);
 public:
     PlacementLegalizer() {}
@@ -303,9 +304,9 @@ void PlacementLegalizer::parse_opt(string filename) {
         vector<Row*> localRows = search_local_region(mergedCell);
         if (DEBUG) write_lg("LocalRegion.lg", localRows, XYCoord(this->DieLB), XYCoord(this->DieUR));
 
-        round++;
-        if (round == 2)
-            break; // TODO: remove
+        // round++;
+        // if (round == 2)
+        //     break; // TODO: remove
     }
 
 
@@ -471,10 +472,11 @@ int main(int argc, char** argv) {
     PlacementLegalizer LG;
 
     LG.parse_init_lg(argv[1]);
-    if (DEBUG) LG.write_lg("Init.lg");
+    if (DEBUG) LG.write_lg("ParseInit.lg");
     LG.place_fCells();
     if (DEBUG) LG.write_lg("PlaceFCells.lg");
     LG.parse_opt(argv[2]);
+    if (DEBUG) LG.write_lg("ParseOpt.lg");
 
     return 0;
 }

@@ -191,6 +191,16 @@ def main():
 
 
 
+    # Create a legend showing the color of each block type
+    # The legend is shown in the upper right corner outside the plot
+    legend_elements = [
+        patches.Patch(facecolor="#FFFFFF", edgecolor=FCELL_COLOR, label='fCell'),
+        patches.Patch(facecolor="#FFFFFF", edgecolor=MCELL_COLOR, label='mCell'),
+        patches.Patch(facecolor="#FFFFFF", edgecolor=PR_COLOR, label='PR'),
+        patches.Patch(facecolor="#FF0000", edgecolor="#FF0000", label='Violation'),
+    ]
+    ax.legend(handles=legend_elements, loc='upper right', bbox_to_anchor=(1.05, 1))
+
     # Save the figure with the specified output name
     plt.title(image_title)
     plt.savefig(image_file, dpi=300)
