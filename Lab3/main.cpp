@@ -113,7 +113,7 @@ public:
     void write_lg(string filename);
     void write_lg(string filename, vector<Row*> localRows, XYCoord LB, XYCoord UR);
     void write_lg(string filename, vector<PlacementRow *> localPRs, vector<Cell *> localMCells, vector<Cell *> localFCells, XYCoord LB, XYCoord UR);
-    void place_fCells();
+    void place_cells();
 };
 
 void PlacementLegalizer::write_lg(string filename) {
@@ -273,8 +273,32 @@ PlacementRow* PlacementLegalizer::trim_placement_row(PlacementRow *PR, double le
 
     return rightPR;
 }
-void PlacementLegalizer::place_fCells() {
+void PlacementLegalizer::place_cells() {
     for (auto cell : allFCells) {
+        XYCoord cellLB = cell->LB;
+        XYCoord cellUR = cell->LB + XYCoord(cell->width, cell->height);
+
+        auto it = allRows.lower_bound(cellLB.y);
+        while (it != allRows.end() && it->first < cellUR.y) {
+            Row* currentRow = it->second;
+            for (auto PR : currentRow->get_PRs()) {
+                if (cellLB.x >= PR->endX() || cellUR.x <= PR->startX())
+                    continue;
+
+                PlacementRow* rightPR = trim_placement_row(PR, cellLB.x, cellUR.x);
+                if (rightPR) {
+                    currentRow->add_PR(rightPR);
+                }
+                if (PR->totalNumOfSites == 0) {
+                    currentRow->erase_PR(PR);
+                    delete PR;
+                    PR = nullptr;
+                }
+            }
+            ++it;
+        }
+    }
+    for (auto cell : allMCells) {
         XYCoord cellLB = cell->LB;
         XYCoord cellUR = cell->LB + XYCoord(cell->width, cell->height);
 
@@ -476,8 +500,8 @@ int main(int argc, char** argv) {
 
     LG.parse_init_lg(argv[1]);
     if (DEBUG) LG.write_lg("00_Init.lg");
-    LG.place_fCells();
-    if (DEBUG) LG.write_lg("01_PlaceFCells.lg");
+    LG.place_cells();
+    if (DEBUG) LG.write_lg("01_PlaceCells.lg");
     LG.parse_opt(argv[2]);
     if (DEBUG) LG.write_lg("02_ParseOpt.lg");
 
