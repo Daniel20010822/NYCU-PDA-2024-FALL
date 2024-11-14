@@ -26,6 +26,7 @@ def parse_arguments():
     parser.add_argument("-p", "--hide-placement-rows", action="store_false", help="Hide placement rows")
     parser.add_argument("-f", "--hide-fcell", action="store_false", help="Hide fixed cells")
     parser.add_argument("-m", "--hide-mcell", action="store_false", help="Hide movable cells")
+    parser.add_argument("-v", "--show-violation", action="store_true", help="Show overlap regions")
 
     return parser.parse_args()
 
@@ -121,15 +122,14 @@ def draw_blocks(ax, blocks, **kwargs):
     block_collection = PatchCollection(rects, match_original=True)
     ax.add_collection(block_collection)
 
-    # Check for overlaps
-    # Sweep line algorithm for overlap detection
+def find_overlap(ax, blocks):
+    """Sweep line algorithm for overlap detection"""
     events = []
     for i, (name, x, y, w, h) in enumerate(blocks):
         events.append((x, 'start', i, y, y + h))
         events.append((x + w, 'end', i, y, y + h))
 
     events.sort()  # Sort by x-coordinate
-
     active = []  # Blocks intersecting with sweep line
     for x, event_type, block_idx, y1, y2 in events:
         if event_type == 'start':
@@ -172,22 +172,29 @@ def main():
 
     # Parse the input file
     print("Parsing input file...")
-    die_lb_x, die_lb_y, die_ur_x, die_ur_y, fCell, mCell, placement_rows = parse_input_lg(input_file)
+    die_lb_x, die_lb_y, die_ur_x, die_ur_y, fCells, mCells, PRs = parse_input_lg(input_file)
 
     # Set up the figure and axis with adjusted dimensions
     fig, ax = setup_plot(die_lb_x, die_lb_y, die_ur_x, die_ur_y)
 
     # Draw blocks
-    print("Drawing blocks...")
     if args.hide_mcell:
-        draw_blocks(ax, mCell, color=MCELL_COLOR)
+        print("Drawing mCell...")
+        draw_blocks(ax, mCells, color=MCELL_COLOR)
     if args.hide_fcell:
-        draw_blocks(ax, fCell, color=FCELL_COLOR)
+        print("Drawing fCell...")
+        draw_blocks(ax, fCells, color=FCELL_COLOR)
     if placement_rows_file:
-        placement_rows = parse_placement_row_file(placement_rows_file)
-        draw_blocks(ax, placement_rows, color=PR_COLOR, alpha=0.5, linewidth=0.3)
+        print("Parsing PR file...")
+        PRs = parse_placement_row_file(placement_rows_file)
+        print("Drawing PRs...")
+        draw_blocks(ax, PRs, color=PR_COLOR, alpha=0.5, linewidth=0.3)
     elif args.hide_placement_rows:
-        draw_blocks(ax, placement_rows, color=PR_COLOR, alpha=0.5, linewidth=0.3)
+        print("Drawing PRs...")
+        draw_blocks(ax, PRs, color=PR_COLOR, alpha=0.5, linewidth=0.3)
+
+    if args.show_violation:
+        find_overlap(ax, mCells)
 
 
 
@@ -196,8 +203,8 @@ def main():
     legend_elements = [
         patches.Patch(facecolor="#FFFFFF", edgecolor=FCELL_COLOR, label='fCell'),
         patches.Patch(facecolor="#FFFFFF", edgecolor=MCELL_COLOR, label='mCell'),
-        patches.Patch(facecolor="#FFFFFF", edgecolor=PR_COLOR, label='PR'),
-        patches.Patch(facecolor="#FF0000", edgecolor="#FF0000", label='Violation'),
+        patches.Patch(facecolor="#FFFFFF", edgecolor=PR_COLOR   , label='PR'),
+        patches.Patch(facecolor="#FF0000", edgecolor="#FF0000"  , label='Violation'),
     ]
     ax.legend(handles=legend_elements, loc='upper right', bbox_to_anchor=(1.05, 1))
 
