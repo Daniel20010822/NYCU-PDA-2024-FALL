@@ -99,8 +99,6 @@ private:
 
     double rowHeight = 0;
     double rowSiteWidth = 0;
-    double minWidthMCell = numeric_limits<double>::max();
-
 
     map<double, Row *> allRows;
     vector<Cell *> allFCells;
@@ -121,6 +119,7 @@ public:
     void write_lg(string filename);
     void write_lg(string filename, vector<Row*> localRows, XYCoord LB, XYCoord UR);
     void write_lg(string filename, vector<PlacementRow *> localPRs, vector<Cell *> localMCells, vector<Cell *> localFCells, XYCoord LB, XYCoord UR);
+    void write_post_lg(string filename);
     void place_cells();
     void place_single_cell(Cell *cell);
     void place_mergedCells();
@@ -397,16 +396,16 @@ void PlacementLegalizer::parse_opt(string filename) {
             // Read merged cell info
             ss >> mergedCellName >> lbx >> lby >> w >> h;
 
-            // Remove candidate cells from its corresponding row
-            for (auto cellName : eraseCellList) {
-                Cell* cell = this->name2cell[cellName];
-                allRows[cell->LB.y]->erase_mCell(cell);
-                this->allMCells.erase(find(this->allMCells.begin(), this->allMCells.end(), cell));
-                this->name2cell.erase(cellName);
-                this->cell2row.erase(cell);
-                delete cell;
-                cell = nullptr;
-            }
+            // // Remove candidate cells from its corresponding row
+            // for (auto cellName : eraseCellList) {
+            //     Cell* cell = this->name2cell[cellName];
+            //     allRows[cell->LB.y]->erase_mCell(cell);
+            //     this->allMCells.erase(find(this->allMCells.begin(), this->allMCells.end(), cell));
+            //     this->name2cell.erase(cellName);
+            //     this->cell2row.erase(cell);
+            //     delete cell;
+            //     cell = nullptr;
+            // }
 
             // for (auto erasedCell : eraseCellList) {
             //     cout << erasedCell << " ";
@@ -509,69 +508,57 @@ PlacementRow* PlacementLegalizer::get_placement_row_by_point(XYCoord point) {
 }
 
 void PlacementLegalizer::place_mergedCells() {
-    // Start from the first row
-    auto it = allRows.lower_bound(this->DieLB.y);
-    // Inistialize placeLB
-    vector<PlacementRow *> PRs = it->second->get_PRs();
-    auto currentPRit = PRs.begin();
-    XYCoord placeLB = (*currentPRit)->startP;
-    // size_t numMergedCell = 0;
+    double minMCellWidth = numeric_limits<double>::max();
+    for (auto cell : this->allMCells) {
+        if (cell->width < minMCellWidth) {
+            minMCellWidth = cell->width;
+        }
+    }
+    for (auto cell : this->allmergedCells) {
+        if (cell->width < minMCellWidth) {
+            minMCellWidth = cell->width;
+        }
+    }
 
-    // while (numMergedCell < this->allmergedCells.size()) {
-    //     Cell *mergedCell = this->allmergedCells[numMergedCell];
-    //     // Skip PRs that don't exist or are too small
-    //     while (true) {
-    //         if (!get_placement_row_by_point(placeLB)) {
-    //             currentPRit++;
-    //             placeLB = (*currentPRit)->startP;
-    //             break;
-    //         }
-    //         else if (get_placement_row_by_point(placeLB)->getWidth() < mergedCell->width) {
-    //             currentPRit++;
-    //             placeLB = (*currentPRit)->startP;
-    //             break;
-    //         }
-    //     }
-    //     while (!is_placement_valid(placeLB, mergedCell)) {
-    //         placeLB.x += this->rowSiteWidth;
-    //         if (placeLB.x >= this->DieUR.x) {
-    //             it++;
-    //             currentPRit = it->second->get_PRs().begin();
-    //             placeLB = (*currentPRit)->startP;
-    //         }
-    //     }
+    // TODO: Integrate parse_opt and this
+    // TODO: Add recover_PR() when deleting candidate cells
 
-    //     mergedCell->LB = placeLB;
-    //     place_single_cell(mergedCell);
-    //     it->second->add_mCell(mergedCell);
-    //     placeLB.x += mergedCell->width;
+    size_t mergedCellIndex = 0;
+    Cell *mergedCell = this->allmergedCells[mergedCellIndex];
 
-    //     numMergedCell++;
-    //     printf("Placed merged cell: %d/%d\n", int(numMergedCell), int(this->allmergedCells.size()));
-    // }
+    for (auto it = allRows.begin(); it != allRows.end(); ++it) {
+        for (auto PR : it->second->get_PRs()) {
+            XYCoord placeLB = PR->startP;
+            // If the current PR is too small, skip it
+            if (PR->getWidth() < minMCellWidth) {
+                continue;
+            }
+            // Start from placeLB
+            while (placeLB.x + mergedCell->width <= PR->endX()) {
+                if (is_placement_valid(placeLB, mergedCell)) {
+                    // Place the merged cell
+                    mergedCell->LB = placeLB;
+                    place_single_cell(mergedCell);
+                    it->second->add_mCell(mergedCell);
+                    // Move placeLB to the next position
+                    placeLB.x += ceil(mergedCell->width / PR->siteWidth)*PR->siteWidth;
 
-    int round = 0;
-    for (auto mergedCell : this->allmergedCells) {
-        while (!is_placement_valid(placeLB, mergedCell)) {
-            placeLB.x += this->rowSiteWidth;
-            if (placeLB.x >= this->DieUR.x) {
-                it++;
-                placeLB = it->second->get_PRs()[0]->startP;
+
+                    // Update index to next mergedCell
+                    mergedCellIndex++;
+                    cout << "Round: " << mergedCellIndex << "/" << this->allmergedCells.size() << endl;
+                    if (mergedCellIndex >= this->allmergedCells.size()) {
+                        return;
+                    }
+                    mergedCell = this->allmergedCells[mergedCellIndex];
+                }
+                else {
+                    placeLB.x += this->rowSiteWidth;
+                }
             }
         }
-
-        mergedCell->LB = placeLB;
-        place_single_cell(mergedCell);
-        it->second->add_mCell(mergedCell);
-        placeLB.x += mergedCell->width;
-
-        round++;
-        printf("Round: %d/%d\n", round, int(this->allmergedCells.size()));
-
-        // if (round >= 20) { // TODO: remove
-        //     break;
-        // }
     }
+    assert(mergedCellIndex != this->allmergedCells.size());
 }
 bool PlacementLegalizer::is_placement_valid(XYCoord pointLB, Cell *mCell) {
     int heightNum = ceil(mCell->height / this->rowHeight);
@@ -585,6 +572,16 @@ bool PlacementLegalizer::is_placement_valid(XYCoord pointLB, Cell *mCell) {
         }
     }
     return true;
+}
+
+void PlacementLegalizer::write_post_lg(string filename) {
+    ofstream f_out(filename);
+
+    for (auto mergedCell : this->allmergedCells) {
+        f_out << mergedCell->LB.x << " " << mergedCell->LB.y << endl;
+        f_out << "0" << endl;
+    }
+    f_out.close();
 }
 
 
@@ -606,6 +603,8 @@ int main(int argc, char** argv) {
 
     LG.place_mergedCells();
     if (DEBUG) LG.write_lg("02_PlaceMergedCells.lg");
+
+    LG.write_post_lg(argv[3]);
     return 0;
 }
 
