@@ -6,6 +6,7 @@ backup/
 *.nfs*
 *.lg
 *.opt
+*.log
 LocalRegion*
 PlacementRows*
 Legalizer

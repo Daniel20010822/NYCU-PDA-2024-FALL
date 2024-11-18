@@ -17,7 +17,7 @@ def parse_arguments():
     """Parse command-line arguments."""
     parser = argparse.ArgumentParser (
         description = "A script that can draw the die layout.",
-        usage="%(prog)s -i [Input_Name] -m [Output_Name] / [Optional] -t [Title] [-p] [-f] [-m]",
+        usage="%(prog)s -i [Input_Name] -m [Output_Name] / [Optional] -t [Title] [-p] [-f] [-m] [-v] [-I]",
     )
     parser.add_argument("-i", "--input",  required=True, type=str, help="Input file name")
     parser.add_argument("-o", "--output", required=True, type=str, help="Output file name")
@@ -27,17 +27,18 @@ def parse_arguments():
     parser.add_argument("-f", "--hide-fcell", action="store_false", help="Hide fixed cells")
     parser.add_argument("-m", "--hide-mcell", action="store_false", help="Hide movable cells")
     parser.add_argument("-v", "--show-violation", action="store_true", help="Show overlap regions")
+    parser.add_argument("-I", "--interactive", action="store_true", help="Interactive mode")
 
     return parser.parse_args()
 
-def setup_plot(die_lb_x, die_lb_y, die_ur_x, die_ur_y):
+def setup_plot(die_lb_x, die_lb_y, die_ur_x, die_ur_y, interactive):
     """Set up the matplotlib figure and axis."""
     die_width  = die_ur_x - die_lb_x
     die_height = die_ur_y - die_lb_y
     size = 2.3e-5 * max(die_width, die_height) + 10
     print(f"figsize=({size:.2f}, {size:.2f})")
 
-    fig, ax = plt.subplots(figsize=(size, size))
+    fig, ax = plt.subplots(figsize=(size, size)) if not interactive else plt.subplots()
     ax.set_xlim(die_lb_x, die_ur_x)
     ax.set_ylim(die_lb_y, die_ur_y)
     ax.set_aspect('equal')  # Equal aspect ratio
@@ -175,7 +176,7 @@ def main():
     die_lb_x, die_lb_y, die_ur_x, die_ur_y, fCells, mCells, PRs = parse_input_lg(input_file)
 
     # Set up the figure and axis with adjusted dimensions
-    fig, ax = setup_plot(die_lb_x, die_lb_y, die_ur_x, die_ur_y)
+    fig, ax = setup_plot(die_lb_x, die_lb_y, die_ur_x, die_ur_y, args.interactive)
 
     # Draw blocks
     if args.hide_mcell:
@@ -210,9 +211,13 @@ def main():
 
     # Save the figure with the specified output name
     plt.title(image_title)
-    plt.savefig(image_file, dpi=300)
-    plt.close()  # Close the plot to free up memory
-    print(f"Plot saved as {image_file}")
+    if args.interactive:
+        print("Opening window...")
+        plt.show()
+    else:
+        plt.savefig(image_file, dpi=300)
+        plt.close()  # Close the plot to free up memory
+        print(f"Plot saved as {image_file}")
 
     end_time = time.time()
     print(f"Total execution time: {end_time - start_time:.2f} seconds")
