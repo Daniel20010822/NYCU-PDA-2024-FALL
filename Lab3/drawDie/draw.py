@@ -10,7 +10,7 @@ from matplotlib.collections import PatchCollection
 FCELL_COLOR = "#FF0000"
 MCELL_COLOR = "#00FF00"
 PR_COLOR    = "#0000FF"
-BG_COLOR    = "#DDDDDD"
+BG_COLOR    = "#999999"
 
 
 def parse_arguments():
@@ -106,6 +106,7 @@ def draw_blocks(ax, blocks, **kwargs):
     color = kwargs.get('color', '#000000')
     alpha = kwargs.get('alpha', 1.0)
     linewidth = kwargs.get('linewidth', 1.0)
+    show_cellname = kwargs.get('show_cellname', False)
 
     # Create patches for each block
     rects = []
@@ -118,6 +119,16 @@ def draw_blocks(ax, blocks, **kwargs):
             alpha=alpha
         )
         rects.append(rect)
+        
+        if show_cellname:
+            # Add text for cellName
+            ax.text(
+                x + w / 2, y + h / 2,  # Position text at the center of the rectangle
+                cellName,
+                color="black",         # Text color
+                fontsize=2,           # Text font size
+                ha="center", va="center"  # Align text center
+            )
 
     # Create a PatchCollection for blocks and add it to the axes
     block_collection = PatchCollection(rects, match_original=True)
