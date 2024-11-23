@@ -1,0 +1,51 @@
+#!/bin/bash
+
+# Check if the folder name argument is provided
+if [ "$#" -ne 1 ]; then
+  echo "Usage: ./run <1 2 3 4 5>"
+  exit 1
+fi
+
+# Check executable file exists
+if [ ! -f "./Legalizer" ]; then
+  echo "Error: Legalizer executable file 'Legalizer' not found."
+  exit 1
+fi
+
+FILE_PATH="Optimizer-and-Legalizer-Co-optimization/testcase"
+
+if [ "$1" -eq 1 ]; then
+  LG_FILE="$FILE_PATH/testcase1_16900.lg"
+  OPT_FILE="$FILE_PATH/testcase1_16900.opt"
+  POSTLG_FILE="testcase1_16900_post.lg"
+  echo "Testcase: testcase1_16900_post"
+elif [ "$1" -eq 2 ]; then
+  LG_FILE="$FILE_PATH/testcase1_ALL0_5000.lg"
+  OPT_FILE="$FILE_PATH/testcase1_ALL0_5000.opt"
+  POSTLG_FILE="testcase1_ALL0_5000_post.lg"
+  echo "Testcase: testcase1_ALL0_5000_post"
+elif [ "$1" -eq 3 ]; then
+  LG_FILE="$FILE_PATH/testcase2_100.lg"
+  OPT_FILE="$FILE_PATH/testcase2_100.opt"
+  POSTLG_FILE="testcase2_100_post.lg"
+  echo "Testcase: testcase2_100_post"
+elif [ "$1" -eq 4 ]; then
+  LG_FILE="$FILE_PATH/testcase3_4579.lg"
+  OPT_FILE="$FILE_PATH/testcase3_4579.opt"
+  POSTLG_FILE="testcase3_4579_post.lg"
+  echo "Testcase: testcase3_4579_post"
+elif [ "$1" -eq 5 ]; then
+  LG_FILE="$FILE_PATH/testcase1_MBFF_LIB_7000.lg"
+  OPT_FILE="$FILE_PATH/testcase1_MBFF_LIB_7000.opt"
+  POSTLG_FILE="testcase1_MBFF_LIB_7000.lg"
+  echo "Testcase: testcase1_MBFF_LIB_7000"
+else
+  echo "Invalid argument: $1"
+  exit 1
+fi
+
+
+# Run the Legalizer command
+time ./Legalizer "$LG_FILE" "$OPT_FILE" "$POSTLG_FILE"
+./Optimizer-and-Legalizer-Co-optimization/Evaluator "$LG_FILE" "$OPT_FILE" "$POSTLG_FILE"
+

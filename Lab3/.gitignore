@@ -1,5 +1,4 @@
 Optimizer-and-Legalizer-Co-optimization/
-backup/
 *case*/
 *.txt
 *.png
@@ -7,8 +6,5 @@ backup/
 *.lg
 *.opt
 *.log
-LocalRegion*
-PlacementRows*
 Legalizer
-run
 all
