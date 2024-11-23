@@ -18,7 +18,7 @@ if [ "$1" -eq 1 ]; then
   LG_FILE="$FILE_PATH/testcase1_16900.lg"
   OPT_FILE="$FILE_PATH/testcase1_16900.opt"
   POSTLG_FILE="testcase1_16900_post.lg"
-  echo "Testcase: testcase1_16900_post"
+  echo "Testcase: testcase1_16900"
 elif [ "$1" -eq 2 ]; then
   LG_FILE="$FILE_PATH/testcase1_ALL0_5000.lg"
   OPT_FILE="$FILE_PATH/testcase1_ALL0_5000.opt"
@@ -28,12 +28,12 @@ elif [ "$1" -eq 3 ]; then
   LG_FILE="$FILE_PATH/testcase2_100.lg"
   OPT_FILE="$FILE_PATH/testcase2_100.opt"
   POSTLG_FILE="testcase2_100_post.lg"
-  echo "Testcase: testcase2_100_post"
+  echo "Testcase: testcase2_100"
 elif [ "$1" -eq 4 ]; then
   LG_FILE="$FILE_PATH/testcase3_4579.lg"
   OPT_FILE="$FILE_PATH/testcase3_4579.opt"
   POSTLG_FILE="testcase3_4579_post.lg"
-  echo "Testcase: testcase3_4579_post"
+  echo "Testcase: testcase3_4579"
 elif [ "$1" -eq 5 ]; then
   LG_FILE="$FILE_PATH/testcase1_MBFF_LIB_7000.lg"
   OPT_FILE="$FILE_PATH/testcase1_MBFF_LIB_7000.opt"
