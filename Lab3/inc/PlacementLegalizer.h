@@ -38,31 +38,26 @@ private:
 
     std::queue<OptOperation> optQueue;
 
-
-    // map<double, Row *> allRows;
     std::vector<Row *>  allRows;
     std::vector<Cell *> allFCells;
     std::vector<Cell *> allMCells;
-    std::vector<Cell *> allMergedCells;
-    std::vector<Cell *> allRemoveCells;
 
     std::unordered_map<std::string, Cell *> name2cell;
-    std::unordered_map<Cell *, Row *>  cell2row;
     std::unordered_map<double, Row *>  rowLookup;
 
 
-    PlacementRow* trim_PR(PlacementRow *PR, double leftX, double rightX);
-    PlacementRow* get_PR_by_point(XYCoord point);
+    PlacementRow *trim_PR(PlacementRow *PR, double leftX, double rightX);
+    void recover_PR(Cell *cell);
+    PlacementRow *get_PR_by_point(XYCoord point);
     bool is_placement_valid(XYCoord pointLB, Cell *mCell);
+    void place_cell(Cell *cell);
 public:
     PlacementLegalizer() {}
     void parse_init_lg(std::string filename);
     void parse_opt(std::string filename);
     void write_lg(std::string filename);
-    void place_fCells();
-    void place_mCells();
+    void init_place_cells();
     void remove_redundant_PRs();
-    void place_single_cell(Cell *cell);
     void place_mergedCells(std::string filename);
 };
 

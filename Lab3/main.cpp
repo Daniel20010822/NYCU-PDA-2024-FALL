@@ -12,15 +12,17 @@ int main(int argc, char** argv) {
 
     PlacementLegalizer LG;
 
+    if (DEBUG) std::cout << "Step0: Parsing init_lg..." << std::endl;
     LG.parse_init_lg(argv[1]);
+    if (DEBUG) std::cout << "Step0: Parsing opt..." << std::endl;
     LG.parse_opt(argv[2]);
-    if (DEBUG) LG.write_lg("00_Init.lg");
+    // if (DEBUG) LG.write_lg("00_Init.lg");
 
-    LG.place_fCells();
-    LG.remove_redundant_PRs();
-    LG.place_mCells();
-    if (DEBUG) LG.write_lg("01_PlaceCells.lg");
+    if (DEBUG) std::cout << "Step1: Initial placing..." << std::endl;
+    LG.init_place_cells();
+    // if (DEBUG) LG.write_lg("01_PlaceCells.lg");
 
+    if (DEBUG) std::cout << "Step2: Placing Merged Cells..." << std::endl;
     LG.place_mergedCells(argv[3]);
     if (DEBUG) LG.write_lg("02_PlaceMergedCells.lg");
 

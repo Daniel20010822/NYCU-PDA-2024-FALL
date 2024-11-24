@@ -22,7 +22,7 @@ $(OBJDIR):
 	@mkdir $(OBJDIR)
 
 $(TARGET): main.cpp $(OBJS)
-	$(CXX) $(WARNINGS) $(CXXFLAGS) $^ -o $@
+	$(CXX) $(WARNINGS) $(CXXFLAGS) -O3 $^ -o $@
 
 # Compilation rule for object files with automatic dependency generation
 $(OBJDIR)/%.o: $(SRCDIR)/%.cpp | $(OBJDIR) Makefile
