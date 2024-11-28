@@ -1,0 +1,41 @@
+#!/bin/bash
+
+# Check if the folder name argument is provided
+if [ "$#" -ne 1 ]; then
+  echo "Usage: ./run <0 1 2>"
+  exit 1
+fi
+
+# Check executable file exists
+if [ ! -f "./D2DGRter" ]; then
+  echo "Error: Executable file 'D2DGRter' not found."
+  exit 1
+fi
+
+if [ "$1" -eq 0 ]; then
+  GMP_FILE="publicCase/testcase0/testcase0.gmp"
+  GCL_FILE="publicCase/testcase0/testcase0.gcl"
+  CST_FILE="publicCase/testcase0/testcase0.cst"
+  OUT_FILE="testcase0.lg"
+  echo "Testcase: testcase0"
+elif [ "$1" -eq 1 ]; then
+  GMP_FILE="publicCase/testcase1/testcase1.gmp"
+  GCL_FILE="publicCase/testcase1/testcase1.gcl"
+  CST_FILE="publicCase/testcase1/testcase1.cst"
+  OUT_FILE="testcase1.lg"
+  echo "Testcase: testcase1"
+elif [ "$1" -eq 2 ]; then
+  GMP_FILE="publicCase/testcase2/testcase2.gmp"
+  GCL_FILE="publicCase/testcase2/testcase2.gcl"
+  CST_FILE="publicCase/testcase2/testcase2.cst"
+  OUT_FILE="testcase2.lg"
+  echo "Testcase: testcase2"
+else
+  echo "Invalid argument: $1"
+  exit 1
+fi
+
+# Run the Legalizer command
+time ./D2DGRter "$GMP_FILE" "$GCL_FILE" "$CST_FILE" "$OUT_FILE"
+
+
