@@ -1,4 +1,6 @@
-/.vscode
+.vscode/*
+obj
+D2DGRter
 *.gmp
 *.gcl
 *.cst

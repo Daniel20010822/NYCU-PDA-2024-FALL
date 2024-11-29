@@ -3,6 +3,7 @@
 # Compiler settings
 CXX = g++
 CXXFLAGS = -I ./inc -std=c++11
+DEBUGFLAGS = -DENABLE_DEBUG_D2DGR
 WARNINGS = -g -Wall
 
 # Source files and object files
@@ -22,11 +23,11 @@ $(OBJDIR):
 	@mkdir $(OBJDIR)
 
 $(TARGET): main.cpp $(OBJS)
-	$(CXX) $(WARNINGS) $(CXXFLAGS) $^ -o $@
+	$(CXX) $(WARNINGS) $(CXXFLAGS) $(DEBUGFLAGS) $^ -o $@
 
 # Compilation rule for object files with automatic dependency generation
 $(OBJDIR)/%.o: $(SRCDIR)/%.cpp | $(OBJDIR) Makefile
-	$(CXX) $(WARNINGS) $(CXXFLAGS) -c $< -o $@
+	$(CXX) $(WARNINGS) $(CXXFLAGS) $(DEBUGFLAGS) -c $< -o $@
 
 clean:
 	rm -rf $(OBJDIR) $(TARGET) *.txt *.png

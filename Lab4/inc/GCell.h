@@ -5,6 +5,8 @@ class GCell {
 private:
     int leftEdgeCapacity = 0;
     int bottomEdgeCapacity = 0;
+
+    bool isOpen = true;
 public:
     GCell();
     ~GCell();
