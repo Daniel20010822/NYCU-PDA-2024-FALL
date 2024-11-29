@@ -18,11 +18,14 @@
 
 class D2DGR {
 private:
+    XYCoord LB;
+    XYCoord RT;
+    int width, height;
+    int gridWidth, gridHeight;
 
 
     Cost cost;
-    Chip *chip1;
-    Chip *chip2;
+    std::vector<Chip*> chips;
 
     void parse_gmp(std::string f_gmp);
     void parse_gcl(std::string f_gcl);

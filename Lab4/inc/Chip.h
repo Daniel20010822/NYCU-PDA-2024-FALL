@@ -3,6 +3,13 @@
 
 #include "XYCoord.h"
 #include <vector>
+#include <iostream>
+
+#ifdef ENABLE_DEBUG_CHIP
+#define DEBUG_CHIP(message) std::cout << "[CHIP] " << message << std::endl
+#else
+#define DEBUG_CHIP(message)
+#endif
 
 class Chip {
 private:
@@ -17,7 +24,7 @@ public:
     Chip(XYCoord inLB, int inWidth, int inHeight);
     ~Chip();
 
-
+    void setBumps(std::vector<XYCoord> inBumps);
 };
 
 #endif
