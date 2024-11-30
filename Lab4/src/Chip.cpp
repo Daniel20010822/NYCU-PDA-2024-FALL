@@ -20,11 +20,19 @@ Chip::~Chip() {
 
 }
 
+XYCoord Chip::getBump(int idx) {
+    return this->bumps[idx] + this->LB;
+}
 
-
-void Chip::setBumps(std::vector<XYCoord> inBumps) {
-    this->bumps = inBumps;
-    for (auto bump : inBumps) {
-        DEBUG_CHIP("Added bump at (" + std::to_string(bump.X()) + ", " + std::to_string(bump.Y()) + ")");
+std::vector<int> Chip::getBumpIndecies() {
+    std::vector<int> indecies;
+    for (auto const& bump : this->bumps) {
+        indecies.push_back(bump.first);
     }
+    return indecies;
+}
+
+void Chip::setBump(int idx, XYCoord inBump) {
+    this->bumps[idx] = inBump;
+    DEBUG_CHIP("Added bump " + std::to_string(idx) + " at (" + std::to_string(inBump.X()) + ", " + std::to_string(inBump.Y()) + ")");
 }

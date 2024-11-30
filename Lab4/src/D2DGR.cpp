@@ -70,21 +70,20 @@ void D2DGR::parse_gmp(std::string f_gmp) {
                     std::istringstream iss(line);
                     int bumpIdx, bumpX, bumpY;
                     iss >> bumpIdx >> bumpX >> bumpY;
-                    bumps.push_back(XYCoord(bumpX, bumpY));
+                    newChip->setBump(bumpIdx, XYCoord(bumpX, bumpY));
                 }
             }
-            newChip->setBumps(bumps);
         }
     }
 
     // Create GCell map
     int numGCellsX = this->width / this->gridWidth;
     int numGCellsY = this->height / this->gridHeight;
-    DEBUG_D2DGR("Creating GCell map with dimensions: " + std::to_string(numGCellsX) + "x" + std::to_string(numGCellsY));
     this->gcell_map.resize(numGCellsY);
     for (int i = 0; i < numGCellsY; i++) {
         this->gcell_map[i].resize(numGCellsX);
     }
+    DEBUG_D2DGR("Creating GCell map with dimensions: " + std::to_string(this->gcell_map[0].size()) + "x" + std::to_string(this->gcell_map.size()));
 
     file.close();
 }
@@ -100,11 +99,11 @@ void D2DGR::parse_gcl(std::string f_gcl) {
     std::string temp;
     file >> temp; // Skip .ec
 
-    for (auto & gcell_row : this->gcell_map) {
-        for (auto & gcell : gcell_row) {
+    for (size_t i = 0; i < this->gcell_map.size(); i++) {
+        for (size_t j = 0; j < this->gcell_map[0].size(); j++) {
             int leftEdgeCapacity, bottomEdgeCapacity;
             file >> leftEdgeCapacity >> bottomEdgeCapacity;
-            gcell = new GCell(leftEdgeCapacity, bottomEdgeCapacity);
+            this->gcell_map[i][j] = new GCell(leftEdgeCapacity, bottomEdgeCapacity);
         }
     }
 
@@ -164,4 +163,21 @@ void D2DGR::parse_cst(std::string f_cst) {
     this->cost.setCostmap(costmap);
 
     file.close();
+}
+
+void D2DGR::global_route() {
+    Chip *chip1 = this->chips[0];
+    Chip *chip2 = this->chips[1];
+
+    std::vector<int> allBumpIndecies = chip1->getBumpIndecies();
+    for (int& bumpIdx : allBumpIndecies) {
+        XYCoord source = chip1->getBump(bumpIdx);
+        XYCoord target = chip2->getBump(bumpIdx);
+        DEBUG_D2DGR("Routing bump " + std::to_string(bumpIdx) + ": from (" + std::to_string(source.X()) + ", " + std::to_string(source.Y()) + ") to (" + std::to_string(target.X()) + ", " + std::to_string(target.Y()) + ")");
+
+        // Convert source and target to GCell
+        source = (source - this->LB) / XYCoord(this->gridWidth, this->gridHeight);
+        target = (target - this->LB) / XYCoord(this->gridWidth, this->gridHeight);
+    }
+    // A_star_search();
 }

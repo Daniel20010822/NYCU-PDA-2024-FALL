@@ -52,3 +52,7 @@ double Cost::Gamma() const {
 double Cost::ViaCost() const {
     return this->viaCost;
 }
+
+const double Cost::getCost(unsigned int layer, unsigned int x, unsigned int y) const {
+    return this->costmap[layer][x][y];
+}

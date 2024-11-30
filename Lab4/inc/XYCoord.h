@@ -18,6 +18,12 @@ public:
     XYCoord operator- (const XYCoord& rhs) {
         return XYCoord(x - rhs.x, y - rhs.y);
     }
+    XYCoord operator* (const XYCoord& rhs) {
+        return XYCoord(x * rhs.x, y * rhs.y);
+    }
+    XYCoord operator/ (const XYCoord& rhs) {
+        return XYCoord(x / rhs.x, y / rhs.y);
+    }
 };
 
 #endif

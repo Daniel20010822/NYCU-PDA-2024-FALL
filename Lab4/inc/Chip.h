@@ -3,6 +3,7 @@
 
 #include "XYCoord.h"
 #include <vector>
+#include <unordered_map>
 #include <iostream>
 
 #ifdef ENABLE_DEBUG_CHIP
@@ -18,13 +19,15 @@ private:
     int width;
     int height;
 
-    std::vector<XYCoord> bumps;
+    std::unordered_map<int, XYCoord> bumps; //FIXME: Change to grid coord
 public:
     Chip();
     Chip(XYCoord inLB, int inWidth, int inHeight);
     ~Chip();
 
-    void setBumps(std::vector<XYCoord> inBumps);
+    XYCoord getBump(int idx);
+    std::vector<int> getBumpIndecies();
+    void setBump(int idx, XYCoord inBump);
 };
 
 #endif

@@ -32,20 +32,14 @@ public:
     void setDelta(double delta);
     void setGamma(double gamma);
     void setViaCost(double viaCost);
-
     void setCostmap(CostMap3D costmap);
 
     // Getters
-    const CostMap2D& getLayer1Costmap() const;
-    const CostMap2D& getLayer2Costmap() const;
-
     double Alpha() const;
     double Beta() const;
     double Delta() const;
     double Gamma() const;
     double ViaCost() const;
-
-    const CostMap2D& getCostmap(unsigned int layer) const;
     const double getCost(unsigned int layer, unsigned int x, unsigned int y) const;
 };
 

@@ -18,25 +18,26 @@ using GCellMap2D = std::vector<std::vector<GCell*>>;
 
 class D2DGR {
 private:
-    XYCoord LB;
-    XYCoord RT;
+    XYCoord LB; // Routing Area
+    XYCoord RT; // Routing Area
     int width, height;
     int gridWidth, gridHeight;
-
 
     Cost cost;
     std::vector<Chip*> chips;
     GCellMap2D gcell_map;
 
-
     void parse_gmp(std::string f_gmp);
     void parse_gcl(std::string f_gcl);
     void parse_cst(std::string f_cst);
+    void A_star_search();
+
 public:
     D2DGR();
     ~D2DGR();
 
     void parse_input(std::string f_gmp, std::string f_gcl, std::string f_cst);
+    void global_route();
 };
 
 #endif
