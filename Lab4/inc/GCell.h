@@ -9,6 +9,7 @@ private:
     bool isOpen = true;
 public:
     GCell();
+    GCell(int leftEdgeCapacity, int bottomEdgeCapacity);
     ~GCell();
 
     // void

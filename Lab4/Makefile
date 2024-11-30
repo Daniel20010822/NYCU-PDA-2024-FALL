@@ -3,7 +3,7 @@
 # Compiler settings
 CXX = g++
 CXXFLAGS = -I ./inc -std=c++11
-DEBUGFLAGS = -DENABLE_DEBUG_D2DGR -DENABLE_DEBUG_CHIP
+DEBUGFLAGS = -DENABLE_DEBUG_D2DGR #-DENABLE_DEBUG_CHIP -DENABLE_DEBUG_COST
 WARNINGS = -g -Wall
 
 # Source files and object files

@@ -1,9 +1,17 @@
 #ifndef _COST_H_
 #define _COST_H_
 
+#ifdef ENABLE_DEBUG_COST
+#define DEBUG_COST(message) std::cout << "[COST] " << message << std::endl
+#else
+#define DEBUG_COST(message)
+#endif
+
+#include <iostream>
 #include <vector>
 
-using CostMap2D = std::vector<std::vector<unsigned int>>;
+using CostMap2D = std::vector<std::vector<double>>;
+using CostMap3D = std::vector<std::vector<std::vector<double>>>;
 
 class Cost {
 private:
@@ -13,9 +21,7 @@ private:
     double gamma;
     double viaCost;
 
-    CostMap2D layer1_costmap;
-    CostMap2D layer2_costmap;
-
+    CostMap3D costmap;
 public:
     Cost() {};
     ~Cost() {};
@@ -27,8 +33,7 @@ public:
     void setGamma(double gamma);
     void setViaCost(double viaCost);
 
-    void setLayer1Costmap(const CostMap2D& costmap);
-    void setLayer2Costmap(const CostMap2D& costmap);
+    void setCostmap(CostMap3D costmap);
 
     // Getters
     const CostMap2D& getLayer1Costmap() const;

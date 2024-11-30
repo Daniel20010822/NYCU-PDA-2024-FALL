@@ -14,7 +14,7 @@
 #include <string>
 #include <vector>
 
-
+using GCellMap2D = std::vector<std::vector<GCell*>>;
 
 class D2DGR {
 private:
@@ -26,6 +26,8 @@ private:
 
     Cost cost;
     std::vector<Chip*> chips;
+    GCellMap2D gcell_map;
+
 
     void parse_gmp(std::string f_gmp);
     void parse_gcl(std::string f_gcl);
