@@ -31,6 +31,7 @@ private:
     void parse_gcl(std::string f_gcl);
     void parse_cst(std::string f_cst);
     void A_star_search(XYCoord source, XYCoord target);
+    void reconstruct_path();
 
 public:
     D2DGR();

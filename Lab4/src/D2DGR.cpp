@@ -208,9 +208,10 @@ void D2DGR::A_star_search(XYCoord sourcePos, XYCoord targetPos) {
     // Iterate through the open list
     while (!openList.empty()) {
         GCell *currentGCell = openList.top();
-        DEBUG_D2DGR("Current Pos: (" + std::to_string(currentGCell->getPos().X()) + ", " + std::to_string(currentGCell->getPos().Y()) + "), f = " + std::to_string(currentGCell->getf()) + ", g = " + std::to_string(currentGCell->getg()) + ", h = " + std::to_string(currentGCell->geth()));
+        DEBUG_D2DGR(" ==> Current Pos: (" + std::to_string(currentGCell->getPos().X()) + ", " + std::to_string(currentGCell->getPos().Y()) + "), f = " + std::to_string(currentGCell->getf()) + ", g = " + std::to_string(currentGCell->getg()) + ", h = " + std::to_string(currentGCell->geth()));
 
         openList.pop();
+        // TODO: Implement the closed list based on Gcell edge capacity
         closedList[currentGCell->getPos().Y()][currentGCell->getPos().X()] = true;
 
         // Check if we have reached the target
@@ -220,18 +221,18 @@ void D2DGR::A_star_search(XYCoord sourcePos, XYCoord targetPos) {
         }
 
         // Iterate through the neighbors
-        XYCoord directions[] = {XYCoord(0, -1), XYCoord(1, 0), XYCoord(0, 1), XYCoord(-1, 0)};
+        XYCoord directions[] = {XYCoord(1, 0), XYCoord(0, 1), XYCoord(-1, 0), XYCoord(0, -1)}; // Right, Up, Left, Down
         for (XYCoord direction : directions) {
-            XYCoord neighborPos = currentGCell->getPos() + direction;
-            if (neighborPos.X() < 0 || neighborPos.X() >= int(this->gcell_map[0].size()) || neighborPos.Y() < 0 || neighborPos.Y() >= int(this->gcell_map.size())) {
+            XYCoord nextPos = currentGCell->getPos() + direction;
+            if (nextPos.X() < 0 || nextPos.X() >= int(this->gcell_map[0].size()) || nextPos.Y() < 0 || nextPos.Y() >= int(this->gcell_map.size())) {
                 continue;
             }
-            GCell *neighborGCell = this->gcell_map[neighborPos.Y()][neighborPos.X()];
-            if (closedList[neighborPos.Y()][neighborPos.X()] || neighborGCell->getPos() == targetPos) {
+            GCell *nextGCell = this->gcell_map[nextPos.Y()][nextPos.X()];
+            if (closedList[nextPos.Y()][nextPos.X()]) {
                 continue;
             }
 
-            // Calculate the cost to move to the neighbor
+            // TODO: Calculate the cost to move to the neighbor
             // double tentative_g = currentGCell->getg() + this->cost.getCost(currentGCell->getPos(), neighborGCell->getPos());
             double tentative_g = currentGCell->getg() + 1;
 
@@ -241,25 +242,43 @@ void D2DGR::A_star_search(XYCoord sourcePos, XYCoord targetPos) {
             while (!tempQueue.empty()) {
                 GCell *openGCell = tempQueue.top();
                 tempQueue.pop();
-                if (openGCell->getPos() == neighborGCell->getPos()) {
+                if (openGCell->getPos() == nextGCell->getPos()) {
                     inOpenList = true;
                     break;
                 }
             }
 
-            // If the neighbor is not in the open list, add it
+            // Check if the path to the neighbor is better
+            bool isTenativeBetter = false;
             if (!inOpenList) {
-                openList.push(neighborGCell);
-                DEBUG_D2DGR("Push neighbor to open list: (" + std::to_string(neighborGCell->getPos().X()) + ", " + std::to_string(neighborGCell->getPos().Y()) + ")");
+                isTenativeBetter = true;
             }
-            else if (tentative_g >= neighborGCell->getg()) {
-                continue;
+            else if (tentative_g < nextGCell->getg()) {
+                isTenativeBetter = true;
             }
 
             // This path is the best until now. Record it!
-            neighborGCell->setg(tentative_g);
-            neighborGCell->seth(neighborGCell->manhattan_distance(neighborGCell->getPos(), targetPos));
-            neighborGCell->setf(neighborGCell->getg() + neighborGCell->geth());
+            if (isTenativeBetter) {
+                nextGCell->setg(tentative_g);
+                nextGCell->seth(nextGCell->manhattan_distance(nextGCell->getPos(), targetPos));
+                nextGCell->setf(nextGCell->getg() + nextGCell->geth());
+                openList.push(nextGCell);
+                // DEBUG_D2DGR("Push (" + std::to_string(nextGCell->getPos().X()) + ", " + std::to_string(nextGCell->getPos().Y()) + ")" + " to open list");
+            }
         }
+
+        // Show the open list after each iteration
+        // std::priority_queue<GCell*, std::vector<GCell*>, GCell::Compare> tempQueue = openList;
+        // std::string openListStr = "Open List: ";
+        // while (!tempQueue.empty()) {
+        //     GCell *openGCell = tempQueue.top();
+        //     openListStr += "(" + std::to_string(openGCell->getPos().X()) + ", " + std::to_string(openGCell->getPos().Y()) + ", " + std::to_string(static_cast<int>(openGCell->getf())) + ") ";
+        //     tempQueue.pop();
+        // }
+        // DEBUG_D2DGR(openListStr);
     }
+}
+
+void D2DGR::reconstruct_path() {
+
 }
