@@ -24,6 +24,9 @@ public:
     XYCoord operator/ (const XYCoord& rhs) {
         return XYCoord(x / rhs.x, y / rhs.y);
     }
+    bool operator== (const XYCoord& rhs) {
+        return x == rhs.x && y == rhs.y;
+    }
 };
 
 #endif

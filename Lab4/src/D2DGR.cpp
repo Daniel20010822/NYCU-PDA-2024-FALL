@@ -3,6 +3,7 @@
 #include <fstream>
 #include <string>
 #include <sstream>
+#include <queue>
 #include <cassert>
 
 D2DGR::D2DGR() {
@@ -37,10 +38,10 @@ void D2DGR::parse_gmp(std::string f_gmp) {
             std::istringstream iss(line);
             int LBX, LBY, width, height;
             iss >> LBX >> LBY >> width >> height;
-            this->LB = XYCoord(LBX, LBY);
+            this->areaLB = XYCoord(LBX, LBY);
             this->width = width;
             this->height = height;
-            this->RT = this->LB + XYCoord(this->width, this->height);
+            this->areaRT = this->areaLB + XYCoord(this->width, this->height);
         }
         else if (line == ".g") {
             std::getline(file, line);
@@ -55,7 +56,8 @@ void D2DGR::parse_gmp(std::string f_gmp) {
             std::istringstream iss(line);
             int chipLBX, chipLBY, chipWidth, chipHeight;
             iss >> chipLBX >> chipLBY >> chipWidth >> chipHeight;
-            Chip *newChip = new Chip(XYCoord(chipLBX, chipLBY), chipWidth, chipHeight);
+            XYCoord chipLB = XYCoord(chipLBX, chipLBY) + this->areaLB;
+            Chip *newChip = new Chip(chipLB, chipWidth, chipHeight);
             this->chips.push_back(newChip);
 
             std::vector<XYCoord> bumps;
@@ -70,7 +72,8 @@ void D2DGR::parse_gmp(std::string f_gmp) {
                     std::istringstream iss(line);
                     int bumpIdx, bumpX, bumpY;
                     iss >> bumpIdx >> bumpX >> bumpY;
-                    newChip->setBump(bumpIdx, XYCoord(bumpX, bumpY));
+                    XYCoord bumpPos = XYCoord(bumpX, bumpY) + chipLB;
+                    newChip->setBump(bumpIdx, bumpPos);
                 }
             }
         }
@@ -99,11 +102,13 @@ void D2DGR::parse_gcl(std::string f_gcl) {
     std::string temp;
     file >> temp; // Skip .ec
 
-    for (size_t i = 0; i < this->gcell_map.size(); i++) {
-        for (size_t j = 0; j < this->gcell_map[0].size(); j++) {
+    for (size_t row = 0; row < this->gcell_map.size(); row++) {
+        for (size_t col = 0; col < this->gcell_map[0].size(); col++) {
             int leftEdgeCapacity, bottomEdgeCapacity;
             file >> leftEdgeCapacity >> bottomEdgeCapacity;
-            this->gcell_map[i][j] = new GCell(leftEdgeCapacity, bottomEdgeCapacity);
+            XYCoord LB  = this->areaLB + XYCoord(col * this->gridWidth, row * this->gridHeight);
+            XYCoord pos = {int(col), int(row)};
+            this->gcell_map[row][col] = new GCell(LB, pos, leftEdgeCapacity, bottomEdgeCapacity);
         }
     }
 
@@ -171,13 +176,90 @@ void D2DGR::global_route() {
 
     std::vector<int> allBumpIndecies = chip1->getBumpIndecies();
     for (int& bumpIdx : allBumpIndecies) {
+        DEBUG_D2DGR("============== Pair " + std::to_string(bumpIdx) + " ==============");
         XYCoord source = chip1->getBump(bumpIdx);
         XYCoord target = chip2->getBump(bumpIdx);
-        DEBUG_D2DGR("Routing bump " + std::to_string(bumpIdx) + ": from (" + std::to_string(source.X()) + ", " + std::to_string(source.Y()) + ") to (" + std::to_string(target.X()) + ", " + std::to_string(target.Y()) + ")");
+        DEBUG_D2DGR("Absolute Coordinate of current pair bumps: (" + std::to_string(source.X()) + ", " + std::to_string(source.Y()) + ") -> (" + std::to_string(target.X()) + ", " + std::to_string(target.Y()) + ")");
 
-        // Convert source and target to GCell
-        source = (source - this->LB) / XYCoord(this->gridWidth, this->gridHeight);
-        target = (target - this->LB) / XYCoord(this->gridWidth, this->gridHeight);
+        // Convert source and target to GCell coordinates
+        XYCoord sourcePos = (source - this->areaLB) / XYCoord(this->gridWidth, this->gridHeight);
+        XYCoord targetPos = (target - this->areaLB) / XYCoord(this->gridWidth, this->gridHeight);
+        A_star_search(sourcePos, targetPos);
+        break; // FIXME: Remove this break
     }
-    // A_star_search();
+}
+
+void D2DGR::A_star_search(XYCoord sourcePos, XYCoord targetPos) {
+    DEBUG_D2DGR("A* search from (" + std::to_string(sourcePos.X()) + ", " + std::to_string(sourcePos.Y()) + ") to (" + std::to_string(targetPos.X()) + ", " + std::to_string(targetPos.Y()) + ")");
+    GCell *sourceGCell = this->gcell_map[sourcePos.Y()][sourcePos.X()];
+
+    // Initialize the open list
+    std::priority_queue<GCell*, std::vector<GCell*>, GCell::Compare> openList;
+    openList.push(sourceGCell);
+
+    // Initialize the closed list
+    std::vector<std::vector<bool>> closedList(this->gcell_map.size(), std::vector<bool>(this->gcell_map[0].size(), false));
+
+    // Initialize the starting GCell
+    sourceGCell->setg(0);
+    sourceGCell->seth(sourceGCell->manhattan_distance(sourcePos, targetPos));
+    sourceGCell->setf(sourceGCell->getg() + sourceGCell->geth());
+
+    // Iterate through the open list
+    while (!openList.empty()) {
+        GCell *currentGCell = openList.top();
+        DEBUG_D2DGR("Current Pos: (" + std::to_string(currentGCell->getPos().X()) + ", " + std::to_string(currentGCell->getPos().Y()) + "), f = " + std::to_string(currentGCell->getf()) + ", g = " + std::to_string(currentGCell->getg()) + ", h = " + std::to_string(currentGCell->geth()));
+
+        openList.pop();
+        closedList[currentGCell->getPos().Y()][currentGCell->getPos().X()] = true;
+
+        // Check if we have reached the target
+        if (currentGCell->getPos() == targetPos) {
+            DEBUG_D2DGR("Found path to target");
+            return;
+        }
+
+        // Iterate through the neighbors
+        XYCoord directions[] = {XYCoord(0, -1), XYCoord(1, 0), XYCoord(0, 1), XYCoord(-1, 0)};
+        for (XYCoord direction : directions) {
+            XYCoord neighborPos = currentGCell->getPos() + direction;
+            if (neighborPos.X() < 0 || neighborPos.X() >= int(this->gcell_map[0].size()) || neighborPos.Y() < 0 || neighborPos.Y() >= int(this->gcell_map.size())) {
+                continue;
+            }
+            GCell *neighborGCell = this->gcell_map[neighborPos.Y()][neighborPos.X()];
+            if (closedList[neighborPos.Y()][neighborPos.X()] || neighborGCell->getPos() == targetPos) {
+                continue;
+            }
+
+            // Calculate the cost to move to the neighbor
+            // double tentative_g = currentGCell->getg() + this->cost.getCost(currentGCell->getPos(), neighborGCell->getPos());
+            double tentative_g = currentGCell->getg() + 1;
+
+            // Check if the neighbor is in the open list
+            bool inOpenList = false;
+            std::priority_queue<GCell*, std::vector<GCell*>, GCell::Compare> tempQueue = openList;
+            while (!tempQueue.empty()) {
+                GCell *openGCell = tempQueue.top();
+                tempQueue.pop();
+                if (openGCell->getPos() == neighborGCell->getPos()) {
+                    inOpenList = true;
+                    break;
+                }
+            }
+
+            // If the neighbor is not in the open list, add it
+            if (!inOpenList) {
+                openList.push(neighborGCell);
+                DEBUG_D2DGR("Push neighbor to open list: (" + std::to_string(neighborGCell->getPos().X()) + ", " + std::to_string(neighborGCell->getPos().Y()) + ")");
+            }
+            else if (tentative_g >= neighborGCell->getg()) {
+                continue;
+            }
+
+            // This path is the best until now. Record it!
+            neighborGCell->setg(tentative_g);
+            neighborGCell->seth(neighborGCell->manhattan_distance(neighborGCell->getPos(), targetPos));
+            neighborGCell->setf(neighborGCell->getg() + neighborGCell->geth());
+        }
+    }
 }

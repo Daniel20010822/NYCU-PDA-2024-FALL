@@ -18,8 +18,8 @@ using GCellMap2D = std::vector<std::vector<GCell*>>;
 
 class D2DGR {
 private:
-    XYCoord LB; // Routing Area
-    XYCoord RT; // Routing Area
+    XYCoord areaLB; // Routing Area
+    XYCoord areaRT; // Routing Area
     int width, height;
     int gridWidth, gridHeight;
 
@@ -30,7 +30,7 @@ private:
     void parse_gmp(std::string f_gmp);
     void parse_gcl(std::string f_gcl);
     void parse_cst(std::string f_cst);
-    void A_star_search();
+    void A_star_search(XYCoord source, XYCoord target);
 
 public:
     D2DGR();

@@ -10,5 +10,7 @@ int main (int argc, char** argv) {
 
     D2DGR GlobalRouter;
     GlobalRouter.parse_input(argv[1], argv[2], argv[3]);
+
+    GlobalRouter.global_route();
     return 0;
 }

@@ -1,4 +1,5 @@
 #include "Chip.h"
+#include <algorithm>
 
 Chip::Chip() {
     this->LB = XYCoord(0, 0);
@@ -21,7 +22,7 @@ Chip::~Chip() {
 }
 
 XYCoord Chip::getBump(int idx) {
-    return this->bumps[idx] + this->LB;
+    return this->bumps[idx];
 }
 
 std::vector<int> Chip::getBumpIndecies() {
@@ -29,6 +30,7 @@ std::vector<int> Chip::getBumpIndecies() {
     for (auto const& bump : this->bumps) {
         indecies.push_back(bump.first);
     }
+    std::sort(indecies.begin(), indecies.end());
     return indecies;
 }
 
