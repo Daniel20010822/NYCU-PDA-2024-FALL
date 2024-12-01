@@ -12,6 +12,7 @@
 #include "XYCoord.h"
 #include "Chip.h"
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 using GCellMap2D = std::vector<std::vector<GCell*>>;
@@ -31,7 +32,7 @@ private:
     void parse_gcl(std::string f_gcl);
     void parse_cst(std::string f_cst);
     void A_star_search(XYCoord source, XYCoord target);
-    void reconstruct_path();
+    void reconstruct_path(std::unordered_map<GCell*, GCell*>& cameFrom, GCell *targetGCell);
 
 public:
     D2DGR();

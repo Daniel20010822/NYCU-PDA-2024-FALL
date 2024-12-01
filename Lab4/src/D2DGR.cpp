@@ -1,5 +1,7 @@
 #include "D2DGR.h"
 #include <iostream>
+#include <algorithm>
+#include <unordered_map>
 #include <fstream>
 #include <string>
 #include <sstream>
@@ -185,7 +187,7 @@ void D2DGR::global_route() {
         XYCoord sourcePos = (source - this->areaLB) / XYCoord(this->gridWidth, this->gridHeight);
         XYCoord targetPos = (target - this->areaLB) / XYCoord(this->gridWidth, this->gridHeight);
         A_star_search(sourcePos, targetPos);
-        break; // FIXME: Remove this break
+        // break; // FIXME: Remove this break
     }
 }
 
@@ -205,6 +207,9 @@ void D2DGR::A_star_search(XYCoord sourcePos, XYCoord targetPos) {
     sourceGCell->seth(sourceGCell->manhattan_distance(sourcePos, targetPos));
     sourceGCell->setf(sourceGCell->getg() + sourceGCell->geth());
 
+    // Create a map to restore the path
+    std::unordered_map<GCell*, GCell*> cameFrom;
+
     // Iterate through the open list
     while (!openList.empty()) {
         GCell *currentGCell = openList.top();
@@ -217,6 +222,7 @@ void D2DGR::A_star_search(XYCoord sourcePos, XYCoord targetPos) {
         // Check if we have reached the target
         if (currentGCell->getPos() == targetPos) {
             DEBUG_D2DGR("Found path to target");
+            reconstruct_path(cameFrom, currentGCell);
             return;
         }
 
@@ -263,6 +269,7 @@ void D2DGR::A_star_search(XYCoord sourcePos, XYCoord targetPos) {
                 nextGCell->seth(nextGCell->manhattan_distance(nextGCell->getPos(), targetPos));
                 nextGCell->setf(nextGCell->getg() + nextGCell->geth());
                 openList.push(nextGCell);
+                cameFrom[nextGCell] = currentGCell;
                 // DEBUG_D2DGR("Push (" + std::to_string(nextGCell->getPos().X()) + ", " + std::to_string(nextGCell->getPos().Y()) + ")" + " to open list");
             }
         }
@@ -279,6 +286,20 @@ void D2DGR::A_star_search(XYCoord sourcePos, XYCoord targetPos) {
     }
 }
 
-void D2DGR::reconstruct_path() {
+void D2DGR::reconstruct_path(std::unordered_map<GCell*, GCell*>& cameFrom, GCell *targetGCell) {
+    std::vector<GCell*> totalPath;
+    totalPath.push_back(targetGCell);
+    while (cameFrom.find(targetGCell) != cameFrom.end()) {
+        targetGCell = cameFrom[targetGCell];
+        totalPath.push_back(targetGCell);
+    }
+    std::reverse(totalPath.begin(), totalPath.end());
+
+    std::string pathStr = "Path: ";
+    for (GCell *gcell : totalPath) {
+        pathStr += "(" + std::to_string(gcell->getPos().X()) + ", " + std::to_string(gcell->getPos().Y()) + ") ";
+    }
+
+    DEBUG_D2DGR(pathStr);
 
 }
