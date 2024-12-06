@@ -35,6 +35,7 @@ public:
     double getf() const { return f; }
     double getg() const { return g; }
     double geth() const { return h; }
+    XYCoord getLB()  const { return LB; }
     XYCoord getPos() const { return pos; }
     void setf(double f) { this->f = f; }
     void setg(double g) { this->g = g; }

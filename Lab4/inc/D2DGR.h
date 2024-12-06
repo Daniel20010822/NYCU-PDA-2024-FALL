@@ -11,6 +11,7 @@
 #include "GCell.h"
 #include "XYCoord.h"
 #include "Chip.h"
+#include "Net.h"
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -27,12 +28,13 @@ private:
     Cost cost;
     std::vector<Chip*> chips;
     GCellMap2D gcell_map;
+    std::vector<Net*> netlist;
 
     void parse_gmp(std::string f_gmp);
     void parse_gcl(std::string f_gcl);
     void parse_cst(std::string f_cst);
-    void A_star_search(XYCoord source, XYCoord target);
-    void reconstruct_path(std::unordered_map<GCell*, GCell*>& cameFrom, GCell *targetGCell);
+    void A_star_search(int currentIdx, XYCoord source, XYCoord target);
+    void reconstruct_path(int currentIdx, std::unordered_map<GCell*, GCell*>& cameFrom, GCell *targetGCell);
 
 public:
     D2DGR();
@@ -40,6 +42,7 @@ public:
 
     void parse_input(std::string f_gmp, std::string f_gcl, std::string f_cst);
     void global_route();
+    void write_output(std::string f_lg);
 };
 
 #endif

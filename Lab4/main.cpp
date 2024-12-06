@@ -12,5 +12,6 @@ int main (int argc, char** argv) {
     GlobalRouter.parse_input(argv[1], argv[2], argv[3]);
 
     GlobalRouter.global_route();
+    GlobalRouter.write_output(argv[4]);
     return 0;
 }

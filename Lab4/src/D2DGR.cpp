@@ -186,12 +186,12 @@ void D2DGR::global_route() {
         // Convert source and target to GCell coordinates
         XYCoord sourcePos = (source - this->areaLB) / XYCoord(this->gridWidth, this->gridHeight);
         XYCoord targetPos = (target - this->areaLB) / XYCoord(this->gridWidth, this->gridHeight);
-        A_star_search(sourcePos, targetPos);
+        A_star_search(bumpIdx, sourcePos, targetPos);
         // break; // FIXME: Remove this break
     }
 }
 
-void D2DGR::A_star_search(XYCoord sourcePos, XYCoord targetPos) {
+void D2DGR::A_star_search(int currentIdx, XYCoord sourcePos, XYCoord targetPos) {
     DEBUG_D2DGR("A* search from (" + std::to_string(sourcePos.X()) + ", " + std::to_string(sourcePos.Y()) + ") to (" + std::to_string(targetPos.X()) + ", " + std::to_string(targetPos.Y()) + ")");
     GCell *sourceGCell = this->gcell_map[sourcePos.Y()][sourcePos.X()];
 
@@ -222,7 +222,7 @@ void D2DGR::A_star_search(XYCoord sourcePos, XYCoord targetPos) {
         // Check if we have reached the target
         if (currentGCell->getPos() == targetPos) {
             DEBUG_D2DGR("Found path to target");
-            reconstruct_path(cameFrom, currentGCell);
+            reconstruct_path(currentIdx, cameFrom, currentGCell);
             return;
         }
 
@@ -286,7 +286,7 @@ void D2DGR::A_star_search(XYCoord sourcePos, XYCoord targetPos) {
     }
 }
 
-void D2DGR::reconstruct_path(std::unordered_map<GCell*, GCell*>& cameFrom, GCell *targetGCell) {
+void D2DGR::reconstruct_path(int currentIdx, std::unordered_map<GCell*, GCell*>& cameFrom, GCell *targetGCell) {
     std::vector<GCell*> totalPath;
     totalPath.push_back(targetGCell);
     while (cameFrom.find(targetGCell) != cameFrom.end()) {
@@ -295,11 +295,85 @@ void D2DGR::reconstruct_path(std::unordered_map<GCell*, GCell*>& cameFrom, GCell
     }
     std::reverse(totalPath.begin(), totalPath.end());
 
+    // Show the path
     std::string pathStr = "Path: ";
     for (GCell *gcell : totalPath) {
         pathStr += "(" + std::to_string(gcell->getPos().X()) + ", " + std::to_string(gcell->getPos().Y()) + ") ";
     }
-
     DEBUG_D2DGR(pathStr);
 
+    enum Direction { Vertical, Horizontal };
+
+    // Detect via points
+    std::vector<bool> isVia(totalPath.size(), false);
+    for (size_t i = 1; i < totalPath.size() - 1; i++) {
+        GCell *currentGCell = totalPath[i];
+        GCell *prevGCell = totalPath[i - 1];
+        GCell *nextGCell = totalPath[i + 1];
+        Direction dir1 = (currentGCell->getPos().X() == prevGCell->getPos().X()) ? Vertical : Horizontal;
+        Direction dir2 = (currentGCell->getPos().X() == nextGCell->getPos().X()) ? Vertical : Horizontal;
+        isVia[i] = (dir1 != dir2);
+    }
+
+    // Create path segments using via points
+    std::vector<std::pair<size_t, size_t>> pathSegments;
+    size_t startIdx = 0;
+    for (size_t i = 1; i < totalPath.size(); i++) {
+        if (isVia[i]) {
+            pathSegments.push_back(std::make_pair(startIdx, i));
+            DEBUG_D2DGR("Make segment from " + std::to_string(startIdx) + " to " + std::to_string(i));
+            startIdx = i;
+        }
+        else if (i == totalPath.size() - 1) {
+            pathSegments.push_back(std::make_pair(startIdx, i));
+            DEBUG_D2DGR("Make segment from " + std::to_string(startIdx) + " to " + std::to_string(i));
+        }
+    }
+
+
+
+    // Create the output format path
+    std::string netName = "n" + std::to_string(currentIdx);
+
+    Net *newNet = new Net(netName);
+
+    std::vector<std::string> paths;
+
+    for (auto pathSegment : pathSegments) {
+        XYCoord start = totalPath[pathSegment.first]->getLB();
+        XYCoord end   = totalPath[pathSegment.second]->getLB();
+        Direction direction = (start.X() == end.X()) ? Vertical : Horizontal;
+        std::string metalType = (direction == Vertical) ? "M1" : "M2";
+        std::string path = metalType + " " + std::to_string(start.X()) + " " + std::to_string(start.Y()) + " " + std::to_string(end.X()) + " " + std::to_string(end.Y());
+
+        if (pathSegment == pathSegments.front() && direction == Horizontal) {
+            newNet->addPath("via");
+        }
+        newNet->addPath(path);
+        if (pathSegment != pathSegments.back() || (pathSegment == pathSegments.back() && direction == Horizontal)) {
+            newNet->addPath("via");
+        }
+    }
+    newNet->addPath(".end");
+
+    // Add this net to the netlist
+    this->netlist.push_back(newNet);
+}
+
+void D2DGR::write_output(std::string f_lg) {
+    std::ofstream file(f_lg);
+
+    if (!file.is_open()) {
+        std::cerr << "Error: Unable to open file " << f_lg << std::endl;
+        return;
+    }
+
+    for (Net *net : this->netlist) {
+        file << net->getName() << "\n";
+        for (std::string path : net->getPaths()) {
+            file << path << "\n";
+        }
+    }
+
+    file.close();
 }

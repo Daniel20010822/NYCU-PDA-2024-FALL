@@ -40,4 +40,16 @@ $(OBJDIR)/%.o: $(SRCDIR)/%.cpp | $(OBJDIR) Makefile
 	$(Q) $(CXX) $(WARNINGS) $(CXXFLAGS) $(DEBUGFLAGS) -c $< -o $@
 
 clean:
-	rm -rf $(OBJDIR) $(TARGET) *.txt *.png *.lg
+	rm -rf $(OBJDIR) $(TARGET) ./publicCase/testcase0/*.lg ./publicCase/testcase1/*.lg ./publicCase/testcase2/*.lg
+
+run0:
+	./$(TARGET) publicCase/testcase0/testcase0.gmp publicCase/testcase0/testcase0.gcl publicCase/testcase0/testcase0.cst publicCase/testcase0/testcase0.lg
+	./NYCU-PDA-Lab4-Evaluator/Evaluator/Evaluator ./publicCase/testcase0 testcase0
+
+run1:
+	./$(TARGET) publicCase/testcase1/testcase1.gmp publicCase/testcase1/testcase1.gcl publicCase/testcase1/testcase1.cst publicCase/testcase1/testcase1.lg
+	./NYCU-PDA-Lab4-Evaluator/Evaluator/Evaluator ./publicCase/testcase1 testcase1
+
+run2:
+	./$(TARGET) publicCase/testcase2/testcase2.gmp publicCase/testcase2/testcase2.gcl publicCase/testcase2/testcase2.cst publicCase/testcase2/testcase2.lg
+	./NYCU-PDA-Lab4-Evaluator/Evaluator/Evaluator ./publicCase/testcase2 testcase2
