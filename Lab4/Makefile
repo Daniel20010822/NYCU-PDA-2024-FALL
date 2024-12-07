@@ -2,7 +2,7 @@
 
 # Compiler settings
 CXX = g++
-CXXFLAGS = -I ./inc -std=c++11
+CXXFLAGS = -I ./inc -std=c++11 -O3
 DEBUGFLAGS = #-DENABLE_DEBUG_D2DGR -DENABLE_DEBUG_CHIP -DENABLE_DEBUG_COST
 WARNINGS = -g -Wall
 PYTHON = python3.12
@@ -47,16 +47,16 @@ clean:
 EVALUATOR := NYCU-PDA-Lab4-Evaluator/Evaluator/Evaluator
 
 run0:
-	time ./$(TARGET) publicCase/testcase0/testcase0.gmp publicCase/testcase0/testcase0.gcl publicCase/testcase0/testcase0.cst publicCase/testcase0/testcase0.lg
+	timeout 300 ./$(TARGET) publicCase/testcase0/testcase0.gmp publicCase/testcase0/testcase0.gcl publicCase/testcase0/testcase0.cst publicCase/testcase0/testcase0.lg
 	$(EVALUATOR) ./publicCase/testcase0 testcase0
 	$(PYTHON) draw/draw.py ./publicCase/testcase0 testcase0
 run1:
-	time ./$(TARGET) publicCase/testcase1/testcase1.gmp publicCase/testcase1/testcase1.gcl publicCase/testcase1/testcase1.cst publicCase/testcase1/testcase1.lg
+	timeout 300 ./$(TARGET) publicCase/testcase1/testcase1.gmp publicCase/testcase1/testcase1.gcl publicCase/testcase1/testcase1.cst publicCase/testcase1/testcase1.lg
 	$(EVALUATOR) ./publicCase/testcase1 testcase1
 	$(PYTHON) draw/draw.py ./publicCase/testcase1 testcase1
 
 run2:
-	time ./$(TARGET) publicCase/testcase2/testcase2.gmp publicCase/testcase2/testcase2.gcl publicCase/testcase2/testcase2.cst publicCase/testcase2/testcase2.lg
+	timeout 300 ./$(TARGET) publicCase/testcase2/testcase2.gmp publicCase/testcase2/testcase2.gcl publicCase/testcase2/testcase2.cst publicCase/testcase2/testcase2.lg
 	$(EVALUATOR) ./publicCase/testcase2 testcase2
 	$(PYTHON) draw/draw.py ./publicCase/testcase2 testcase2
 

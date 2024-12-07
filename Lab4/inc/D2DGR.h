@@ -34,7 +34,7 @@ private:
     void parse_gmp(std::string f_gmp);
     void parse_gcl(std::string f_gcl);
     void parse_cst(std::string f_cst);
-    double calculate_cost(GCell *currentGCell, GCell *nextGCell, Direction dir);
+    double calculate_cost(GCell *currentGCell, Direction dir, bool isSameDir);
     void A_star_search(int currentIdx, XYCoord source, XYCoord target);
     void reconstruct_path(int currentIdx, std::unordered_map<GCell*, GCell*>& cameFrom, GCell *targetGCell);
 
