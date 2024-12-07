@@ -1,4 +1,4 @@
-.vscode/*
+.vscode
 NYCU-PDA-Lab4-Evaluator
 obj
 D2DGRter
@@ -7,3 +7,4 @@ D2DGRter
 *.cst
 *.lg
 *.log
+*.png

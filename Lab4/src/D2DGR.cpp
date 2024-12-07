@@ -7,6 +7,8 @@
 #include <sstream>
 #include <queue>
 #include <cassert>
+enum Direction { Vertical, Horizontal };
+
 
 D2DGR::D2DGR() {
     DEBUG_D2DGR("D2DGR object created");
@@ -216,7 +218,6 @@ void D2DGR::A_star_search(int currentIdx, XYCoord sourcePos, XYCoord targetPos) 
         DEBUG_D2DGR(" ==> Current Pos: (" + std::to_string(currentGCell->getPos().X()) + ", " + std::to_string(currentGCell->getPos().Y()) + "), f = " + std::to_string(currentGCell->getf()) + ", g = " + std::to_string(currentGCell->getg()) + ", h = " + std::to_string(currentGCell->geth()));
 
         openList.pop();
-        // TODO: Implement the closed list based on Gcell edge capacity
         closedList[currentGCell->getPos().Y()][currentGCell->getPos().X()] = true;
 
         // Check if we have reached the target
@@ -229,6 +230,7 @@ void D2DGR::A_star_search(int currentIdx, XYCoord sourcePos, XYCoord targetPos) 
         // Iterate through the neighbors
         XYCoord directions[] = {XYCoord(1, 0), XYCoord(0, 1), XYCoord(-1, 0), XYCoord(0, -1)}; // Right, Up, Left, Down
         for (XYCoord direction : directions) {
+            Direction dir = (direction.X() == 0) ? Vertical : Horizontal;
             XYCoord nextPos = currentGCell->getPos() + direction;
             if (nextPos.X() < 0 || nextPos.X() >= int(this->gcell_map[0].size()) || nextPos.Y() < 0 || nextPos.Y() >= int(this->gcell_map.size())) {
                 continue;
@@ -240,7 +242,9 @@ void D2DGR::A_star_search(int currentIdx, XYCoord sourcePos, XYCoord targetPos) 
 
             // TODO: Calculate the cost to move to the neighbor
             // double tentative_g = currentGCell->getg() + this->cost.getCost(currentGCell->getPos(), neighborGCell->getPos());
+            double dWL = (dir == Horizontal) ? this->gridWidth : this->gridHeight;
             double tentative_g = currentGCell->getg() + 1;
+            // double tentative_g = currentGCell->getg() + dWL;
 
             // Check if the neighbor is in the open list
             bool inOpenList = false;
@@ -302,8 +306,6 @@ void D2DGR::reconstruct_path(int currentIdx, std::unordered_map<GCell*, GCell*>&
     }
     DEBUG_D2DGR(pathStr);
 
-    enum Direction { Vertical, Horizontal };
-
     // Detect via points
     std::vector<bool> isVia(totalPath.size(), false);
     for (size_t i = 1; i < totalPath.size() - 1; i++) {
@@ -321,12 +323,12 @@ void D2DGR::reconstruct_path(int currentIdx, std::unordered_map<GCell*, GCell*>&
     for (size_t i = 1; i < totalPath.size(); i++) {
         if (isVia[i]) {
             pathSegments.push_back(std::make_pair(startIdx, i));
-            DEBUG_D2DGR("Make segment from " + std::to_string(startIdx) + " to " + std::to_string(i));
+            DEBUG_D2DGR("Segment from " + std::to_string(startIdx) + " to " + std::to_string(i));
             startIdx = i;
         }
         else if (i == totalPath.size() - 1) {
             pathSegments.push_back(std::make_pair(startIdx, i));
-            DEBUG_D2DGR("Make segment from " + std::to_string(startIdx) + " to " + std::to_string(i));
+            DEBUG_D2DGR("Segment from " + std::to_string(startIdx) + " to " + std::to_string(i));
         }
     }
 
@@ -334,18 +336,32 @@ void D2DGR::reconstruct_path(int currentIdx, std::unordered_map<GCell*, GCell*>&
 
     // Create the output format path
     std::string netName = "n" + std::to_string(currentIdx);
-
     Net *newNet = new Net(netName);
-
     std::vector<std::string> paths;
 
     for (auto pathSegment : pathSegments) {
         XYCoord start = totalPath[pathSegment.first]->getLB();
         XYCoord end   = totalPath[pathSegment.second]->getLB();
         Direction direction = (start.X() == end.X()) ? Vertical : Horizontal;
-        std::string metalType = (direction == Vertical) ? "M1" : "M2";
-        std::string path = metalType + " " + std::to_string(start.X()) + " " + std::to_string(start.Y()) + " " + std::to_string(end.X()) + " " + std::to_string(end.Y());
 
+        // Update the capacity of the GCells
+        for (size_t i = pathSegment.first; i <= pathSegment.second; i++) {
+            GCell *gcell = totalPath[i];
+            if (direction == Horizontal) {
+                gcell->addLeftEdgeCapacity(1);
+            }
+            else {
+                gcell->addBottomEdgeCapacity(1);
+            }
+        }
+
+        // Create the path
+        std::string metalType = (direction == Vertical) ? "M1" : "M2";
+        std::string path = metalType + " " +
+                           std::to_string(start.X()) + " " +
+                           std::to_string(start.Y()) + " " +
+                           std::to_string(end.X())   + " " +
+                           std::to_string(end.Y());
         if (pathSegment == pathSegments.front() && direction == Horizontal) {
             newNet->addPath("via");
         }

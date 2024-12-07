@@ -3,7 +3,7 @@
 # Compiler settings
 CXX = g++
 CXXFLAGS = -I ./inc -std=c++11
-DEBUGFLAGS = -DENABLE_DEBUG_D2DGR -DENABLE_DEBUG_CHIP #-DENABLE_DEBUG_COST
+DEBUGFLAGS = #-DENABLE_DEBUG_D2DGR -DENABLE_DEBUG_CHIP -DENABLE_DEBUG_COST
 WARNINGS = -g -Wall
 
 # Source files and object files
@@ -42,14 +42,19 @@ $(OBJDIR)/%.o: $(SRCDIR)/%.cpp | $(OBJDIR) Makefile
 clean:
 	rm -rf $(OBJDIR) $(TARGET) ./publicCase/testcase0/*.lg ./publicCase/testcase1/*.lg ./publicCase/testcase2/*.lg
 
+
+EVALUATOR := NYCU-PDA-Lab4-Evaluator/Evaluator/Evaluator
 run0:
 	./$(TARGET) publicCase/testcase0/testcase0.gmp publicCase/testcase0/testcase0.gcl publicCase/testcase0/testcase0.cst publicCase/testcase0/testcase0.lg
-	./NYCU-PDA-Lab4-Evaluator/Evaluator/Evaluator ./publicCase/testcase0 testcase0
+	$(EVALUATOR) ./publicCase/testcase0 testcase0
 
 run1:
 	./$(TARGET) publicCase/testcase1/testcase1.gmp publicCase/testcase1/testcase1.gcl publicCase/testcase1/testcase1.cst publicCase/testcase1/testcase1.lg
-	./NYCU-PDA-Lab4-Evaluator/Evaluator/Evaluator ./publicCase/testcase1 testcase1
+	$(EVALUATOR) ./publicCase/testcase1 testcase1
 
 run2:
 	./$(TARGET) publicCase/testcase2/testcase2.gmp publicCase/testcase2/testcase2.gcl publicCase/testcase2/testcase2.cst publicCase/testcase2/testcase2.lg
-	./NYCU-PDA-Lab4-Evaluator/Evaluator/Evaluator ./publicCase/testcase2 testcase2
+	$(EVALUATOR) ./publicCase/testcase2 testcase2
+
+runall: run0 run1 run2
+

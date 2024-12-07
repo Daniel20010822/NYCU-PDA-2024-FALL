@@ -29,14 +29,19 @@ public:
     GCell(XYCoord LB, XYCoord pos, int leftEdgeCapacity, int bottomEdgeCapacity);
     ~GCell();
 
+    XYCoord getLB()  const { return LB; }
+    XYCoord getPos() const { return pos; }
+    void addLeftEdgeCapacity(int capacity) { leftEdgeCapacity += capacity; }
+    void addBottomEdgeCapacity(int capacity) { bottomEdgeCapacity += capacity; }
+    int getLeftEdgeCapacity() const { return leftEdgeCapacity; }
+    int getBottomEdgeCapacity() const { return bottomEdgeCapacity; }
+
     int manhattan_distance(XYCoord source, XYCoord target);
     void evaluate_cost(XYCoord source, XYCoord target);
 
     double getf() const { return f; }
     double getg() const { return g; }
     double geth() const { return h; }
-    XYCoord getLB()  const { return LB; }
-    XYCoord getPos() const { return pos; }
     void setf(double f) { this->f = f; }
     void setg(double g) { this->g = g; }
     void seth(double h) { this->h = h; }
