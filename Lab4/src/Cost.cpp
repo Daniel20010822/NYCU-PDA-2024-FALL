@@ -54,5 +54,5 @@ double Cost::ViaCost() const {
 }
 
 const double Cost::getCost(unsigned int layer, unsigned int x, unsigned int y) const {
-    return this->costmap[layer][x][y];
+    return this->costmap[layer][y][x];
 }

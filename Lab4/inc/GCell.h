@@ -13,8 +13,12 @@ class GCell {
 private:
     XYCoord LB;  // Actual position of the GCell in the routing area
     XYCoord pos; // Position of the GCell in the GCell map
+
     int leftEdgeCapacity = 0;
     int bottomEdgeCapacity = 0;
+
+    int currentLeftEdgeUsage = 0;
+    int currentBottomEdgeUsage = 0;
 
     double f = 0;
     double g = 0;
@@ -31,13 +35,20 @@ public:
 
     XYCoord getLB()  const { return LB; }
     XYCoord getPos() const { return pos; }
-    void addLeftEdgeCapacity(int capacity) { leftEdgeCapacity += capacity; }
-    void addBottomEdgeCapacity(int capacity) { bottomEdgeCapacity += capacity; }
+
+    void addLeftEdgeUsage(int capacity) { currentLeftEdgeUsage += capacity; }
+    void addBottomEdgeUsage(int capacity) { currentBottomEdgeUsage += capacity; }
+
     int getLeftEdgeCapacity() const { return leftEdgeCapacity; }
     int getBottomEdgeCapacity() const { return bottomEdgeCapacity; }
 
+    int getLeftEdgeUsage() const { return currentLeftEdgeUsage; }
+    int getBottomEdgeUsage() const { return currentBottomEdgeUsage; }
+
+    int getLeftOV() const { return (currentLeftEdgeUsage > leftEdgeCapacity) ? currentLeftEdgeUsage - leftEdgeCapacity : 0; }
+    int getBottomOV() const { return (currentBottomEdgeUsage > bottomEdgeCapacity) ? currentBottomEdgeUsage - bottomEdgeCapacity : 0; }
+
     int manhattan_distance(XYCoord source, XYCoord target);
-    void evaluate_cost(XYCoord source, XYCoord target);
 
     double getf() const { return f; }
     double getg() const { return g; }

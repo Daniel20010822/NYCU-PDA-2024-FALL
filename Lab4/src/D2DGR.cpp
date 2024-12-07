@@ -7,7 +7,7 @@
 #include <sstream>
 #include <queue>
 #include <cassert>
-enum Direction { Vertical, Horizontal };
+
 
 
 D2DGR::D2DGR() {
@@ -193,6 +193,27 @@ void D2DGR::global_route() {
     }
 }
 
+double D2DGR::calculate_cost(GCell *currentGCell, GCell *nextGCell, Direction dir) {
+    double WL, OV, cellCost;
+    if (dir == Horizontal) {
+        WL = this->gridWidth;
+        OV = currentGCell->getLeftOV();
+        cellCost = this->cost.getCost(1, currentGCell->getPos().X(), currentGCell->getPos().Y());
+    }
+    else {
+        WL = this->gridHeight;
+        OV = currentGCell->getBottomOV();
+        cellCost = this->cost.getCost(0, currentGCell->getPos().X(), currentGCell->getPos().Y());
+    }
+
+    double cost = this->cost.Alpha() * WL +
+                  this->cost.Beta()  * OV +
+                  this->cost.Gamma() * cellCost;
+
+    return cost;
+}
+
+
 void D2DGR::A_star_search(int currentIdx, XYCoord sourcePos, XYCoord targetPos) {
     DEBUG_D2DGR("A* search from (" + std::to_string(sourcePos.X()) + ", " + std::to_string(sourcePos.Y()) + ") to (" + std::to_string(targetPos.X()) + ", " + std::to_string(targetPos.Y()) + ")");
     GCell *sourceGCell = this->gcell_map[sourcePos.Y()][sourcePos.X()];
@@ -240,11 +261,8 @@ void D2DGR::A_star_search(int currentIdx, XYCoord sourcePos, XYCoord targetPos) 
                 continue;
             }
 
-            // TODO: Calculate the cost to move to the neighbor
-            // double tentative_g = currentGCell->getg() + this->cost.getCost(currentGCell->getPos(), neighborGCell->getPos());
-            double dWL = (dir == Horizontal) ? this->gridWidth : this->gridHeight;
-            double tentative_g = currentGCell->getg() + 1;
-            // double tentative_g = currentGCell->getg() + dWL;
+            // Calculate the tentative g score
+            double tentative_g = currentGCell->getg() + this->calculate_cost(currentGCell, nextGCell, dir);
 
             // Check if the neighbor is in the open list
             bool inOpenList = false;
@@ -348,10 +366,10 @@ void D2DGR::reconstruct_path(int currentIdx, std::unordered_map<GCell*, GCell*>&
         for (size_t i = pathSegment.first; i <= pathSegment.second; i++) {
             GCell *gcell = totalPath[i];
             if (direction == Horizontal) {
-                gcell->addLeftEdgeCapacity(1);
+                gcell->addLeftEdgeUsage(1);
             }
             else {
-                gcell->addBottomEdgeCapacity(1);
+                gcell->addBottomEdgeUsage(1);
             }
         }
 
