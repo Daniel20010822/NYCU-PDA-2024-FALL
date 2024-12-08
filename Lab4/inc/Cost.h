@@ -21,9 +21,10 @@ private:
     double gamma;
     double viaCost;
 
+    std::vector<double> maxCellCost;
     CostMap3D costmap;
 public:
-    Cost() {};
+    Cost();
     ~Cost() {};
 
     // Setters
@@ -41,6 +42,7 @@ public:
     double Gamma() const;
     double ViaCost() const;
     const double getCost(unsigned int layer, unsigned int x, unsigned int y) const;
+    const double getMaxCellCost(unsigned int layer) const;
 };
 
 #endif

@@ -1,5 +1,14 @@
 #include "Cost.h"
 
+Cost::Cost() {
+    alpha = 0;
+    beta  = 0;
+    delta = 0;
+    gamma = 0;
+    viaCost = 0;
+    maxCellCost.resize(2, 0);
+}
+
 // Setters
 void Cost::setAlpha(double alpha) {
     this->alpha = alpha;
@@ -29,6 +38,14 @@ void Cost::setViaCost(double viaCost) {
 void Cost::setCostmap(CostMap3D costmap) {
     this->costmap = costmap;
     DEBUG_COST("Costmap set");
+
+    for (size_t layer = 0; layer < costmap.size(); layer++) {
+        for (size_t i = 0; i < costmap[layer].size(); i++) {
+            for (size_t j = 0; j < costmap[layer][i].size(); j++) {
+                this->maxCellCost[layer] = std::max(this->maxCellCost[layer], costmap[layer][i][j]);
+            }
+        }
+    }
 }
 
 
@@ -55,4 +72,8 @@ double Cost::ViaCost() const {
 
 const double Cost::getCost(unsigned int layer, unsigned int x, unsigned int y) const {
     return this->costmap[layer][y][x];
+}
+
+const double Cost::getMaxCellCost(unsigned int layer) const {
+    return this->maxCellCost[layer];
 }

@@ -45,8 +45,8 @@ public:
     int getLeftEdgeUsage() const { return currentLeftEdgeUsage; }
     int getBottomEdgeUsage() const { return currentBottomEdgeUsage; }
 
-    int getLeftOV() const { return (currentLeftEdgeUsage > leftEdgeCapacity) ? currentLeftEdgeUsage - leftEdgeCapacity : 0; }
-    int getBottomOV() const { return (currentBottomEdgeUsage > bottomEdgeCapacity) ? currentBottomEdgeUsage - bottomEdgeCapacity : 0; }
+    int getLeftExcessNum() const { return (currentLeftEdgeUsage > leftEdgeCapacity) ? currentLeftEdgeUsage - leftEdgeCapacity : 0; }
+    int getBottomExcessNum() const { return (currentBottomEdgeUsage > bottomEdgeCapacity) ? currentBottomEdgeUsage - bottomEdgeCapacity : 0; }
 
     int manhattan_distance(XYCoord source, XYCoord target);
 

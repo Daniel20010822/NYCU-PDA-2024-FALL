@@ -189,40 +189,42 @@ void D2DGR::global_route() {
         XYCoord sourcePos = (source - this->areaLB) / XYCoord(this->gridWidth, this->gridHeight);
         XYCoord targetPos = (target - this->areaLB) / XYCoord(this->gridWidth, this->gridHeight);
         A_star_search(bumpIdx, sourcePos, targetPos);
-        // break; // FIXME: Remove this break
     }
 }
 
 double D2DGR::calculate_cost(GCell *currentGCell, Direction dir, bool isSameDir) {
     double WL, OV, cellCost, viaCost;
+    double cellCostM1 = this->cost.getCost(0, currentGCell->getPos().X(), currentGCell->getPos().Y());
+    double cellCostM2 = this->cost.getCost(1, currentGCell->getPos().X(), currentGCell->getPos().Y());
+    int OV1 = currentGCell->getBottomEdgeUsage()  + 1 - currentGCell->getBottomEdgeCapacity();
+    int OV2 = currentGCell->getLeftEdgeUsage()    + 1 - currentGCell->getLeftEdgeCapacity();
+    OV1 = (OV1 > 0) ? OV1 : 0;
+    OV2 = (OV2 > 0) ? OV2 : 0;
+
     if (isSameDir) {
         if (dir == Horizontal) {
             WL = this->gridWidth;
-            OV = currentGCell->getLeftOV();
-            cellCost = this->cost.getCost(1, currentGCell->getPos().X(), currentGCell->getPos().Y());
+            OV = OV2 * 0.5 * cost.getMaxCellCost(1);
+            cellCost = cellCostM2;
             viaCost = 0;
         }
         else {
             WL = this->gridHeight;
-            OV = currentGCell->getBottomOV();
-            cellCost = this->cost.getCost(0, currentGCell->getPos().X(), currentGCell->getPos().Y());
+            OV = OV1 * 0.5 * cost.getMaxCellCost(0);
+            cellCost = cellCostM1;
             viaCost = 0;
         }
     }
     else {
         if (dir == Horizontal) {
             WL = this->gridWidth;
-            OV = currentGCell->getLeftOV();
-            double cellCostM1 = this->cost.getCost(0, currentGCell->getPos().X(), currentGCell->getPos().Y());
-            double cellCostM2 = this->cost.getCost(1, currentGCell->getPos().X(), currentGCell->getPos().Y());
+            OV = OV2 * 0.5 * cost.getMaxCellCost(1);
             cellCost = (cellCostM1 + cellCostM2) / 2;
             viaCost = this->cost.ViaCost();
         }
         else {
             WL = this->gridHeight;
-            OV = currentGCell->getBottomOV();
-            double cellCostM1 = this->cost.getCost(0, currentGCell->getPos().X(), currentGCell->getPos().Y());
-            double cellCostM2 = this->cost.getCost(1, currentGCell->getPos().X(), currentGCell->getPos().Y());
+            OV = OV1 * 0.5 * cost.getMaxCellCost(0);
             cellCost = (cellCostM1 + cellCostM2) / 2;
             viaCost = this->cost.ViaCost();
         }
@@ -240,6 +242,7 @@ double D2DGR::calculate_cost(GCell *currentGCell, Direction dir, bool isSameDir)
 void D2DGR::A_star_search(int currentIdx, XYCoord sourcePos, XYCoord targetPos) {
     DEBUG_D2DGR("A* search from (" + std::to_string(sourcePos.X()) + ", " + std::to_string(sourcePos.Y()) + ") to (" + std::to_string(targetPos.X()) + ", " + std::to_string(targetPos.Y()) + ")");
     GCell *sourceGCell = this->gcell_map[sourcePos.Y()][sourcePos.X()];
+    GCell *targetGCell = this->gcell_map[targetPos.Y()][targetPos.X()];
 
     // Initialize the open list
     std::priority_queue<GCell*, std::vector<GCell*>, GCell::Compare> openList;
@@ -250,7 +253,7 @@ void D2DGR::A_star_search(int currentIdx, XYCoord sourcePos, XYCoord targetPos) 
 
     // Initialize the starting GCell
     sourceGCell->setg(0);
-    sourceGCell->seth(sourceGCell->manhattan_distance(sourcePos, targetPos));
+    sourceGCell->seth(sourceGCell->manhattan_distance(sourceGCell->getLB(), targetGCell->getLB()));
     sourceGCell->setf(sourceGCell->getg() + sourceGCell->geth());
 
     // Create a map to restore the path
@@ -259,14 +262,18 @@ void D2DGR::A_star_search(int currentIdx, XYCoord sourcePos, XYCoord targetPos) 
     // Iterate through the open list
     while (!openList.empty()) {
         GCell *currentGCell = openList.top();
-        // DEBUG_D2DGR(" ==> Current Pos: (" + std::to_string(currentGCell->getPos().X()) + ", " + std::to_string(currentGCell->getPos().Y()) + "), f = " + std::to_string(currentGCell->getf()) + ", g = " + std::to_string(currentGCell->getg()) + ", h = " + std::to_string(currentGCell->geth()));
+        DEBUG_D2DGR(
+            " ==> Current Pos: (" + std::to_string(currentGCell->getPos().X()) + ", " + std::to_string(currentGCell->getPos().Y()) + "), " +
+            "f = " + std::to_string(static_cast<int>(currentGCell->getf())) + ", " +
+            "g = " + std::to_string(static_cast<int>(currentGCell->getg())) + ", " +
+            "h = " + std::to_string(static_cast<int>(currentGCell->geth()))
+        );
 
         openList.pop();
         closedList[currentGCell->getPos().Y()][currentGCell->getPos().X()] = true;
 
         // Check if we have reached the target
         if (currentGCell->getPos() == targetPos) {
-            // DEBUG_D2DGR("Found path to target");
             reconstruct_path(currentIdx, cameFrom, currentGCell);
             return;
         }
@@ -314,7 +321,7 @@ void D2DGR::A_star_search(int currentIdx, XYCoord sourcePos, XYCoord targetPos) 
             // This path is the best until now. Record it!
             if (isTenativeBetter) {
                 nextGCell->setg(tentative_g);
-                nextGCell->seth(nextGCell->manhattan_distance(nextGCell->getPos(), targetPos));
+                nextGCell->seth(nextGCell->manhattan_distance(nextGCell->getLB(), targetGCell->getLB()));
                 nextGCell->setf(nextGCell->getg() + nextGCell->geth());
                 openList.push(nextGCell);
                 cameFrom[nextGCell] = currentGCell;
