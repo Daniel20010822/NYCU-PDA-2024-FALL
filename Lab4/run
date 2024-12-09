@@ -1,8 +1,8 @@
 #!/bin/bash
 
-# Check if the folder name argument is provided
-if [ "$#" -ne 1 ]; then
-  echo "Usage: ./run <0 1 2>"
+# Check if the correct number of arguments is provided
+if [ "$#" -ne 2 ]; then
+  echo "Usage: ./run <path_to_case> <case_name>"
   exit 1
 fi
 
@@ -12,30 +12,44 @@ if [ ! -f "./D2DGRter" ]; then
   exit 1
 fi
 
-if [ "$1" -eq 0 ]; then
-  GMP_FILE="publicCase/testcase0/testcase0.gmp"
-  GCL_FILE="publicCase/testcase0/testcase0.gcl"
-  CST_FILE="publicCase/testcase0/testcase0.cst"
-  OUT_FILE="testcase0.lg"
-  echo "Testcase: testcase0"
-elif [ "$1" -eq 1 ]; then
-  GMP_FILE="publicCase/testcase1/testcase1.gmp"
-  GCL_FILE="publicCase/testcase1/testcase1.gcl"
-  CST_FILE="publicCase/testcase1/testcase1.cst"
-  OUT_FILE="testcase1.lg"
-  echo "Testcase: testcase1"
-elif [ "$1" -eq 2 ]; then
-  GMP_FILE="publicCase/testcase2/testcase2.gmp"
-  GCL_FILE="publicCase/testcase2/testcase2.gcl"
-  CST_FILE="publicCase/testcase2/testcase2.cst"
-  OUT_FILE="testcase2.lg"
-  echo "Testcase: testcase2"
-else
-  echo "Invalid argument: $1"
-  exit 1
-fi
+# Assign arguments to variables
+CASE_PATH="$1"
+CASE_NAME="$2"
+
+# Set file paths based on arguments
+GMP_FILE="${CASE_PATH}/${CASE_NAME}.gmp"
+GCL_FILE="${CASE_PATH}/${CASE_NAME}.gcl"
+CST_FILE="${CASE_PATH}/${CASE_NAME}.cst"
+OUT_FILE="${CASE_PATH}/${CASE_NAME}.lg"
+
+echo "Testcase: ${CASE_NAME}"
+
+# if [ "$1" -eq 0 ]; then
+#   GMP_FILE="publicCase/testcase0/testcase0.gmp"
+#   GCL_FILE="publicCase/testcase0/testcase0.gcl"
+#   CST_FILE="publicCase/testcase0/testcase0.cst"
+#   OUT_FILE="testcase0.lg"
+#   echo "Testcase: testcase0"
+# elif [ "$1" -eq 1 ]; then
+#   GMP_FILE="publicCase/testcase1/testcase1.gmp"
+#   GCL_FILE="publicCase/testcase1/testcase1.gcl"
+#   CST_FILE="publicCase/testcase1/testcase1.cst"
+#   OUT_FILE="testcase1.lg"
+#   echo "Testcase: testcase1"
+# elif [ "$1" -eq 2 ]; then
+#   GMP_FILE="publicCase/testcase2/testcase2.gmp"
+#   GCL_FILE="publicCase/testcase2/testcase2.gcl"
+#   CST_FILE="publicCase/testcase2/testcase2.cst"
+#   OUT_FILE="testcase2.lg"
+#   echo "Testcase: testcase2"
+# else
+#   echo "Invalid argument: $1"
+#   exit 1
+# fi
 
 # Run the Legalizer command
 time ./D2DGRter "$GMP_FILE" "$GCL_FILE" "$CST_FILE" "$OUT_FILE"
+./NYCU-PDA-Lab4-Evaluator/Evaluator/Evaluator "$CASE_PATH" "$CASE_NAME"
+python3.12 draw/draw.py "$CASE_PATH"
 
 

@@ -1,5 +1,6 @@
 import os
 import random
+import matplotlib.pyplot as plt
 import math
 
 class Chip:
@@ -64,8 +65,42 @@ class Cost:
         self.gamma = random.uniform(0.5, 2)
         self.delta = random.uniform(0.5, 2)
         self.viaCost = random.uniform(2, 5)
-        self.cost_map_l1 = [[random.uniform(0, 5) for _ in range(width)] for _ in range(height)]
-        self.cost_map_l2 = [[random.uniform(0, 5) for _ in range(width)] for _ in range(height)]
+        # self.cost_map_l1 = [[random.uniform(0, 5) for _ in range(width)] for _ in range(height)]
+        # self.cost_map_l2 = [[random.uniform(0, 5) for _ in range(width)] for _ in range(height)]
+        self.cost_map_l1 = self.generate_gaussian_cost_map(width, height)
+        self.cost_map_l2 = self.generate_gaussian_cost_map(width, height)
+
+    def generate_gaussian_cost_map(self, width, height):
+        """生成具有多個高斯分佈中心的成本地圖"""
+        cost_map = [[0 for _ in range(width)] for _ in range(height)]
+
+        # 創建多個高斯分佈中心點
+        centers = [
+            (width//4, height//4),      # 左下
+            (3*width//4, height//4),    # 右下
+            (width//4, 3*height//4),    # 左上
+            (3*width//4, 3*height//4),  # 右上
+            (width//2, height//2)       # 中心
+        ]
+
+        # 為每個中心點生成高斯分佈
+        for center_x, center_y in centers:
+            std_dev = min(width, height) // 8
+            intensity = random.uniform(3, 8)  # 隨機強度
+
+            for y in range(height):
+                for x in range(width):
+                    # 計算到中心的距離
+                    distance = ((x - center_x) ** 2 + (y - center_y) ** 2) ** 0.5
+                    # 計算高斯值
+                    gaussian_value = intensity * math.exp(-(distance ** 2) / (2 * std_dev ** 2))
+                    cost_map[y][x] += gaussian_value
+
+        # 標準化成本值到合理範圍 (0-5)
+        max_value = max(max(row) for row in cost_map)
+        cost_map = [[val * 5 / max_value for val in row] for row in cost_map]
+
+        return cost_map
 
     def write_cst_file(self, filename='testcase.cst'):
         with open(filename, 'w') as f:
@@ -89,8 +124,8 @@ def generate_routing_area():
     lbx, lby = random.randint(0, 100), random.randint(0, 100)
     gcell_dimension = (10, 10)
     # gcell_dimension = (random.randint(5, 20), random.randint(5, 20))
-    width  = gcell_dimension[0] * random.randint(50, 200)
-    height = gcell_dimension[1] * random.randint(50, 200)
+    width  = gcell_dimension[0] * random.randint(50, 1500)
+    height = gcell_dimension[1] * random.randint(50, 1000)
     ra = RoutingArea(lbx, lby, width, height, gcell_dimension)
     return ra
 
@@ -100,8 +135,8 @@ def generate_chips(ra, bump_number):
 
     ### Generation of chip1
     # Generate chip1 (in representation of grid cells)
-    width1  = random.randint(10, 50)
-    height1 = random.randint(10, 50)
+    width1  = random.randint(40, 80)
+    height1 = random.randint(40, 80)
     lbx1    = random.randint(1, ra.width  // gcell_width  - width1  - 5)
     lby1    = random.randint(1, ra.height // gcell_height - height1 - 5)
 
@@ -128,8 +163,8 @@ def generate_chips(ra, bump_number):
     # chip2 should not overlap with chip1
 
     while True:
-        width2  = random.randint(10, 50)
-        height2 = random.randint(10, 50)
+        width2  = random.randint(40, 80)
+        height2 = random.randint(40, 80)
         lbx2    = random.randint(1, ra.width  // gcell_width  - width2  - 5)
         lby2    = random.randint(1, ra.height // gcell_height - height2 - 5)
 
@@ -159,10 +194,21 @@ def write_gcl_file(width, height, filename="testcase.gcl"):
         for _ in range(width*height):
             f.write(f"{random.randint(1, 3)} {random.randint(1, 3)}\n")
 
+def draw_cost_map(cost_map_l1, cost_map_l2, testcase_name):
+    """Draw cost map"""
+    # Save the figure for layer 1
+    plt.imshow(cost_map_l1, cmap='hot', interpolation='nearest')
+    plt.title('Cost Map Layer 1')
+    plt.colorbar()
+    plt.savefig(f"{testcase_name}/M1.png", dpi=300, bbox_inches='tight')
+    plt.close()
 
-
-
-
+    # Save the figure for layer 2
+    plt.imshow(cost_map_l2, cmap='hot', interpolation='nearest')
+    plt.title('Cost Map Layer 2')
+    plt.colorbar()
+    plt.savefig(f"{testcase_name}/M2.png", dpi=300, bbox_inches='tight')
+    plt.close()
 
 if __name__ == '__main__':
 
@@ -190,5 +236,9 @@ if __name__ == '__main__':
         ra.width // ra.gcell_dimension[0],
         ra.height // ra.gcell_dimension[1],
         filename=f"{testcase_name}/{testcase_name}.gcl")
+
+    # Draw cost map
+    draw_cost_map(cst.cost_map_l1, cst.cost_map_l2, testcase_name)
+
 
 
