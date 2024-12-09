@@ -267,8 +267,10 @@ if __name__ == "__main__":
     print(f"Reading GMP file: {gmp_file}")
     routing_area = parse_gmp_file(gmp_file)
 
-    print(f"Reading LG file: {lg_file}")
-    nets = parse_lg_file(lg_file)
+    nets = []
+    if (os.path.exists(lg_file)):
+        print(f"Reading LG file: {lg_file}")
+        nets = parse_lg_file(lg_file)
 
     fig, ax = setup_plot(routing_area)
     plot_routing_area(ax, routing_area, nets)
