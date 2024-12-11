@@ -21,17 +21,16 @@ class Bump:
         self.y = y
 
 class RoutingArea:
-    def __init__(self, lbx, lby, width, height, gcell_dimension):
-        self.lbx = lbx
-        self.lby = lby
-        self.width = width
-        self.height = height
-        self.gcell_dimension = gcell_dimension
+    def __init__(self):
+        self.lbx = random.randint(0, 100)
+        self.lby = random.randint(0, 100)
+        self.gcell_dimension = (random.randint(5, 15), random.randint(5, 15))
+        self.width  = self.gcell_dimension[0] * random.randint(600, 1500)
+        self.height = self.gcell_dimension[1] * random.randint(600, 1000)
         self.chips = []
 
-
-    def add_chip(self, chip):
-        self.chips.append(chip)
+    def add_bump(self, bump):
+        self.bumps.append(bump)
 
     def is_chip1_overlap(self, chip1, chip2):
         """Check if two chips overlap"""
@@ -40,8 +39,62 @@ class RoutingArea:
                     chip1.lby + chip1.height <= chip2.lby or
                     chip1.lby >= chip2.lby + chip2.height)
 
-    def add_bump(self, bump):
-        self.bumps.append(bump)
+    def generate_chips(self, bump_number):
+        gcell_width, gcell_height = self.gcell_dimension
+
+        ### Generation of chip1
+        # Generate chip1 (in representation of grid cells)
+        width1  = random.randint(40, 80)
+        height1 = random.randint(40, 80)
+        lbx1    = random.randint(1, self.width  // gcell_width  // 2)
+        lby1    = random.randint(1, self.height // gcell_height // 2)
+
+        # Convert grid cells to real coordinates
+        chip1_lbx    = lbx1 * gcell_width
+        chip1_lby    = lby1 * gcell_height
+        chip1_width  = width1  * gcell_width
+        chip1_height = height1 * gcell_height
+        chip1 = Chip(chip1_lbx, chip1_lby, chip1_width, chip1_height)
+        self.chips.append(chip1)
+
+        # Generate bumps for chip1
+        for i in range(bump_number):
+            while True:
+                x = random.randint(0, width1  - 1) * gcell_width
+                y = random.randint(0, height1 - 1) * gcell_height
+                bump = Bump(i + 1, x, y)
+                if all(bump.x != b.x or bump.y != b.y for b in chip1.bumps):
+                    break
+            chip1.add_bump(bump)
+
+
+        ### Generation of chip2
+        # chip2 should not overlap with chip1
+        while True:
+            width2  = random.randint(40, 80)
+            height2 = random.randint(40, 80)
+            lbx2    = random.randint(self.width  // gcell_width  // 2, self.width  // gcell_width  - width2  - 5)
+            lby2    = random.randint(self.height // gcell_height // 2, self.height // gcell_height - height2 - 5)
+
+            chip2_lbx    = lbx2 * gcell_width
+            chip2_lby    = lby2 * gcell_height
+            chip2_width  = width2  * gcell_width
+            chip2_height = height2 * gcell_height
+            chip2 = Chip(chip2_lbx, chip2_lby, chip2_width, chip2_height)
+
+            if not self.is_chip1_overlap(chip1, chip2):
+                self.chips.append(chip2)
+                break
+
+        # Generate bumps for chip2
+        for i in range(bump_number):
+            while True:
+                x = random.randint(0, width2  - 1) * gcell_width
+                y = random.randint(0, height2 - 1) * gcell_height
+                bump = Bump(i + 1, x, y)
+                if all(bump.x != b.x or bump.y != b.y for b in chip2.bumps):
+                    break
+            chip2.add_bump(bump)
 
     def write_gmp_file(self, filename='testcase.gmp'):
         with open(filename, 'w') as f:
@@ -104,89 +157,21 @@ class Cost:
 
     def write_cst_file(self, filename='testcase.cst'):
         with open(filename, 'w') as f:
-            f.write(f".alpha {self.alpha}\n")
-            f.write(f".beta  {self.beta}\n")
-            f.write(f".gamma {self.gamma}\n")
-            f.write(f".delta {self.delta}\n")
+            f.write(f".alpha {self.alpha:.2f}\n")
+            f.write(f".beta  {self.beta:.2f}\n")
+            f.write(f".gamma {self.gamma:.2f}\n")
+            f.write(f".delta {self.delta:.2f}\n")
             f.write(f".v\n")
-            f.write(f"{self.viaCost}\n")
+            f.write(f"{self.viaCost:.2f}\n")
             f.write(".l\n")
             for row in self.cost_map_l1:
-                f.write(" ".join(map(str, row)))
+                f.write(" ".join(f"{val:.2f}" for val in row))
                 f.write("\n")
             f.write(".l\n")
             for row in self.cost_map_l2:
-                f.write(" ".join(map(str, row)))
+                f.write(" ".join(f"{val:.2f}" for val in row))
                 f.write("\n")
 
-def generate_routing_area():
-    """Generate random routing area parameters"""
-    lbx, lby = random.randint(0, 100), random.randint(0, 100)
-    gcell_dimension = (10, 10)
-    # gcell_dimension = (random.randint(5, 20), random.randint(5, 20))
-    width  = gcell_dimension[0] * random.randint(50, 1500)
-    height = gcell_dimension[1] * random.randint(50, 1000)
-    ra = RoutingArea(lbx, lby, width, height, gcell_dimension)
-    return ra
-
-def generate_chips(ra, bump_number):
-    """Generate random chips"""
-    gcell_width, gcell_height = ra.gcell_dimension
-
-    ### Generation of chip1
-    # Generate chip1 (in representation of grid cells)
-    width1  = random.randint(40, 80)
-    height1 = random.randint(40, 80)
-    lbx1    = random.randint(1, ra.width  // gcell_width  - width1  - 5)
-    lby1    = random.randint(1, ra.height // gcell_height - height1 - 5)
-
-    # Convert grid cells to real coordinates
-    chip1_lbx    = lbx1 * gcell_width
-    chip1_lby    = lby1 * gcell_height
-    chip1_width  = width1  * gcell_width
-    chip1_height = height1 * gcell_height
-    chip1 = Chip(chip1_lbx, chip1_lby, chip1_width, chip1_height)
-    ra.add_chip(chip1)
-
-    # Generate bumps for chip1
-    for i in range(bump_number):
-        while True:
-            x = random.randint(0, width1  - 1) * gcell_width
-            y = random.randint(0, height1 - 1) * gcell_height
-            bump = Bump(i + 1, x, y)
-            if all(bump.x != b.x or bump.y != b.y for b in chip1.bumps):
-                break
-        chip1.add_bump(bump)
-
-
-    ### Generation of chip2
-    # chip2 should not overlap with chip1
-
-    while True:
-        width2  = random.randint(40, 80)
-        height2 = random.randint(40, 80)
-        lbx2    = random.randint(1, ra.width  // gcell_width  - width2  - 5)
-        lby2    = random.randint(1, ra.height // gcell_height - height2 - 5)
-
-        chip2_lbx    = lbx2 * gcell_width
-        chip2_lby    = lby2 * gcell_height
-        chip2_width  = width2  * gcell_width
-        chip2_height = height2 * gcell_height
-        chip2 = Chip(chip2_lbx, chip2_lby, chip2_width, chip2_height)
-
-        if not ra.is_chip1_overlap(chip1, chip2):
-            ra.add_chip(chip2)
-            break
-
-    # Generate bumps for chip2
-    for i in range(bump_number):
-        while True:
-            x = random.randint(0, width2  - 1) * gcell_width
-            y = random.randint(0, height2 - 1) * gcell_height
-            bump = Bump(i + 1, x, y)
-            if all(bump.x != b.x or bump.y != b.y for b in chip2.bumps):
-                break
-        chip2.add_bump(bump)
 
 def write_gcl_file(width, height, filename="testcase.gcl"):
     with open(filename, 'w') as f:
@@ -223,8 +208,8 @@ if __name__ == '__main__':
         os.mkdir(testcase_name)
 
     # Generate Routing Area
-    ra = generate_routing_area()
-    generate_chips(ra, bump_number)
+    ra = RoutingArea()
+    ra.generate_chips(bump_number)
     ra.write_gmp_file(f"{testcase_name}/{testcase_name}.gmp")
 
     # Generate Cost

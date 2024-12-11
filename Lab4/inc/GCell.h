@@ -24,10 +24,6 @@ private:
     double g = 0;
     double h = 0;
 
-    // TODO: Think if we need to store the pointers to the neighboring GCells
-    // GCell *R;
-    // GCell *U;
-
 public:
     GCell();
     GCell(XYCoord LB, XYCoord pos, int leftEdgeCapacity, int bottomEdgeCapacity);

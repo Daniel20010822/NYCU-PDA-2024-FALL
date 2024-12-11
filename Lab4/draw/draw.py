@@ -262,7 +262,7 @@ if __name__ == "__main__":
     testcase = os.path.basename(file_dir)
     gmp_file = os.path.join(file_dir, f"{testcase}.gmp")
     lg_file = os.path.join(file_dir, f"{testcase}.lg")
-    output_file = os.path.join("draw", f"{testcase}.png")
+    output_file = os.path.join(file_dir, f"{testcase}.png")
 
     print(f"Reading GMP file: {gmp_file}")
     routing_area = parse_gmp_file(gmp_file)

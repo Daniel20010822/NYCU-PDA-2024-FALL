@@ -2,6 +2,7 @@
 #include <iostream>
 #include <algorithm>
 #include <unordered_map>
+#include <unordered_set>
 #include <fstream>
 #include <string>
 #include <sstream>
@@ -244,9 +245,11 @@ void D2DGR::A_star_search(int currentIdx, XYCoord sourcePos, XYCoord targetPos) 
     GCell *sourceGCell = this->gcell_map[sourcePos.Y()][sourcePos.X()];
     GCell *targetGCell = this->gcell_map[targetPos.Y()][targetPos.X()];
 
-    // Initialize the open list
+    // Initialize the open list and open set
     std::priority_queue<GCell*, std::vector<GCell*>, GCell::Compare> openList;
+    std::unordered_set<GCell*> openSet;
     openList.push(sourceGCell);
+
 
     // Initialize the closed list
     std::vector<std::vector<bool>> closedList(this->gcell_map.size(), std::vector<bool>(this->gcell_map[0].size(), false));
@@ -262,12 +265,12 @@ void D2DGR::A_star_search(int currentIdx, XYCoord sourcePos, XYCoord targetPos) 
     // Iterate through the open list
     while (!openList.empty()) {
         GCell *currentGCell = openList.top();
-        DEBUG_D2DGR(
-            " ==> Current Pos: (" + std::to_string(currentGCell->getPos().X()) + ", " + std::to_string(currentGCell->getPos().Y()) + "), " +
-            "f = " + std::to_string(static_cast<int>(currentGCell->getf())) + ", " +
-            "g = " + std::to_string(static_cast<int>(currentGCell->getg())) + ", " +
-            "h = " + std::to_string(static_cast<int>(currentGCell->geth()))
-        );
+        // DEBUG_D2DGR(
+        //     " ==> Current Pos: (" + std::to_string(currentGCell->getPos().X()) + ", " + std::to_string(currentGCell->getPos().Y()) + "), " +
+        //     "f = " + std::to_string(static_cast<int>(currentGCell->getf())) + ", " +
+        //     "g = " + std::to_string(static_cast<int>(currentGCell->getg())) + ", " +
+        //     "h = " + std::to_string(static_cast<int>(currentGCell->geth()))
+        // );
 
         openList.pop();
         closedList[currentGCell->getPos().Y()][currentGCell->getPos().X()] = true;
@@ -298,16 +301,7 @@ void D2DGR::A_star_search(int currentIdx, XYCoord sourcePos, XYCoord targetPos) 
             double tentative_g = currentGCell->getg() + this->calculate_cost(currentGCell, dir, isSameDir);
 
             // Check if the neighbor is in the open list
-            bool inOpenList = false;
-            std::priority_queue<GCell*, std::vector<GCell*>, GCell::Compare> tempQueue = openList;
-            while (!tempQueue.empty()) {
-                GCell *openGCell = tempQueue.top();
-                tempQueue.pop();
-                if (openGCell->getPos() == nextGCell->getPos()) {
-                    inOpenList = true;
-                    break;
-                }
-            }
+            bool inOpenList = openSet.find(nextGCell) != openSet.end();
 
             // Check if the path to the neighbor is better
             bool isTenativeBetter = false;
@@ -324,6 +318,7 @@ void D2DGR::A_star_search(int currentIdx, XYCoord sourcePos, XYCoord targetPos) 
                 nextGCell->seth(nextGCell->manhattan_distance(nextGCell->getLB(), targetGCell->getLB()));
                 nextGCell->setf(nextGCell->getg() + nextGCell->geth());
                 openList.push(nextGCell);
+                openSet.insert(nextGCell);
                 cameFrom[nextGCell] = currentGCell;
                 // DEBUG_D2DGR("Push (" + std::to_string(nextGCell->getPos().X()) + ", " + std::to_string(nextGCell->getPos().Y()) + ")" + " to open list");
             }
@@ -351,11 +346,11 @@ void D2DGR::reconstruct_path(int currentIdx, std::unordered_map<GCell*, GCell*>&
     std::reverse(totalPath.begin(), totalPath.end());
 
     // Show the path
-    std::string pathStr = "Path: ";
-    for (GCell *gcell : totalPath) {
-        pathStr += "(" + std::to_string(gcell->getPos().X()) + ", " + std::to_string(gcell->getPos().Y()) + ") ";
-    }
-    DEBUG_D2DGR(pathStr);
+    // std::string pathStr = "Path: ";
+    // for (GCell *gcell : totalPath) {
+    //     pathStr += "(" + std::to_string(gcell->getPos().X()) + ", " + std::to_string(gcell->getPos().Y()) + ") ";
+    // }
+    // DEBUG_D2DGR(pathStr);
 
     // Detect via points
     std::vector<bool> isVia(totalPath.size(), false);
