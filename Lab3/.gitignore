@@ -1,4 +1,5 @@
 Optimizer-and-Legalizer-Co-optimization/
+.vscode
 *case*/
 *.txt
 *.png
