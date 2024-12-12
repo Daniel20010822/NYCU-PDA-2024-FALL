@@ -44,8 +44,8 @@ class RoutingArea:
 
         ### Generation of chip1
         # Generate chip1 (in representation of grid cells)
-        width1  = random.randint(40, 80)
-        height1 = random.randint(40, 80)
+        width1  = random.randint(100, 250)
+        height1 = random.randint(100, 250)
         lbx1    = random.randint(1, self.width  // gcell_width  // 2)
         lby1    = random.randint(1, self.height // gcell_height // 2)
 
@@ -71,8 +71,8 @@ class RoutingArea:
         ### Generation of chip2
         # chip2 should not overlap with chip1
         while True:
-            width2  = random.randint(40, 80)
-            height2 = random.randint(40, 80)
+            width2  = random.randint(100, 250)
+            height2 = random.randint(100, 250)
             lbx2    = random.randint(self.width  // gcell_width  // 2, self.width  // gcell_width  - width2  - 5)
             lby2    = random.randint(self.height // gcell_height // 2, self.height // gcell_height - height2 - 5)
 
