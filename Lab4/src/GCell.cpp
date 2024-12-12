@@ -6,11 +6,11 @@ GCell::GCell() {
     // DEBUG_GCELL("GCell object created");
 }
 
-GCell::GCell(XYCoord LB, XYCoord pos, int leftEdgeCapacity, int bottomEdgeCapacity) {
+GCell::GCell(XYCoord LB, XYCoord pos, int L_Capacity, int D_Capacity) {
     this->LB = LB;
     this->pos = pos;
-    this->leftEdgeCapacity = leftEdgeCapacity;
-    this->bottomEdgeCapacity = bottomEdgeCapacity;
+    this->L_Capacity = L_Capacity;
+    this->D_Capacity = D_Capacity;
     // DEBUG_GCELL("GCell object created");
 }
 

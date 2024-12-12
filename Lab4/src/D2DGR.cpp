@@ -109,11 +109,25 @@ void D2DGR::parse_gcl(std::string f_gcl) {
 
     for (size_t row = 0; row < this->gcell_map.size(); row++) {
         for (size_t col = 0; col < this->gcell_map[0].size(); col++) {
-            int leftEdgeCapacity, bottomEdgeCapacity;
-            file >> leftEdgeCapacity >> bottomEdgeCapacity;
+            int L_Capacity, D_Capacity;
+            file >> L_Capacity >> D_Capacity;
             XYCoord LB  = this->areaLB + XYCoord(col * this->gridWidth, row * this->gridHeight);
             XYCoord pos = {int(col), int(row)};
-            this->gcell_map[row][col] = new GCell(LB, pos, leftEdgeCapacity, bottomEdgeCapacity);
+            this->gcell_map[row][col] = new GCell(LB, pos, L_Capacity, D_Capacity);
+        }
+    }
+
+    for (size_t row = 0; row < this->gcell_map.size(); row++) {
+        for (size_t col = 0; col < this->gcell_map[0].size() - 1; col++) {
+            int R_Capacity = this->gcell_map[row][col + 1]->get_L_Capacity();
+            this->gcell_map[row][col]->set_R_Capacity(R_Capacity);
+        }
+    }
+
+    for (size_t row = 0; row < this->gcell_map.size() - 1; row++) {
+        for (size_t col = 0; col < this->gcell_map[0].size(); col++) {
+            int U_Capacity = this->gcell_map[row + 1][col]->get_D_Capacity();
+            this->gcell_map[row][col]->set_U_Capacity(U_Capacity);
         }
     }
 
@@ -193,39 +207,50 @@ void D2DGR::global_route() {
     }
 }
 
-double D2DGR::calculate_cost(GCell *currentGCell, Direction dir, bool isSameDir) {
+double D2DGR::calculate_cost(GCell *currentGCell, XYCoord direction, bool isSameDir) {
     double WL, OV, cellCost, viaCost;
     double cellCostM1 = this->cost.getCost(0, currentGCell->getPos().X(), currentGCell->getPos().Y());
     double cellCostM2 = this->cost.getCost(1, currentGCell->getPos().X(), currentGCell->getPos().Y());
-    int OV1 = currentGCell->getBottomEdgeUsage()  + 1 - currentGCell->getBottomEdgeCapacity();
-    int OV2 = currentGCell->getLeftEdgeUsage()    + 1 - currentGCell->getLeftEdgeCapacity();
-    OV1 = (OV1 > 0) ? OV1 : 0;
-    OV2 = (OV2 > 0) ? OV2 : 0;
+    int OVNum = 0;
+    if (direction == XYCoord(1, 0))
+        OVNum = currentGCell->get_R_CurrentUsage() + 1 - currentGCell->get_R_Capacity();
+    else if (direction == XYCoord(-1, 0))
+        OVNum = currentGCell->get_L_CurrentUsage() + 1 - currentGCell->get_L_Capacity();
+    else if (direction == XYCoord(0, 1))
+        OVNum = currentGCell->get_U_CurrentUsage() + 1 - currentGCell->get_U_Capacity();
+    else if (direction == XYCoord(0, -1))
+        OVNum = currentGCell->get_D_CurrentUsage() + 1 - currentGCell->get_D_Capacity();
+
+    OVNum = (OVNum > 0) ? OVNum : 0;
+    // int OV1 = currentGCell->get_D_CurrentUsage() + 1 - currentGCell->get_D_Capacity();
+    // int OV2 = currentGCell->get_L_CurrentUsage() + 1 - currentGCell->get_L_Capacity();
+    // OV1 = (OV1 > 0) ? OV1 : 0;
+    // OV2 = (OV2 > 0) ? OV2 : 0;
 
     if (isSameDir) {
-        if (dir == Horizontal) {
+        if (direction == XYCoord(1, 0) || direction == XYCoord(-1, 0)) {
             WL = this->gridWidth;
-            OV = OV2 * 0.5 * cost.getMaxCellCost(1);
+            OV = OVNum * 0.5 * cost.getMaxCellCost(1);
             cellCost = cellCostM2;
             viaCost = 0;
         }
         else {
             WL = this->gridHeight;
-            OV = OV1 * 0.5 * cost.getMaxCellCost(0);
+            OV = OVNum * 0.5 * cost.getMaxCellCost(0);
             cellCost = cellCostM1;
             viaCost = 0;
         }
     }
     else {
-        if (dir == Horizontal) {
+        if (direction == XYCoord(1, 0) || direction == XYCoord(-1, 0)) {
             WL = this->gridWidth;
-            OV = OV2 * 0.5 * cost.getMaxCellCost(1);
+            OV = OVNum * 0.5 * cost.getMaxCellCost(1);
             cellCost = (cellCostM1 + cellCostM2) / 2;
             viaCost = this->cost.ViaCost();
         }
         else {
             WL = this->gridHeight;
-            OV = OV1 * 0.5 * cost.getMaxCellCost(0);
+            OV = OVNum * 0.5 * cost.getMaxCellCost(0);
             cellCost = (cellCostM1 + cellCostM2) / 2;
             viaCost = this->cost.ViaCost();
         }
@@ -284,7 +309,8 @@ void D2DGR::A_star_search(int currentIdx, XYCoord sourcePos, XYCoord targetPos) 
         // Iterate through the neighbors
         XYCoord directions[] = {XYCoord(1, 0), XYCoord(0, 1), XYCoord(-1, 0), XYCoord(0, -1)}; // Right, Up, Left, Down
         for (XYCoord direction : directions) {
-            Direction dir = (direction.X() == 0) ? Vertical : Horizontal;
+
+
             XYCoord nextPos = currentGCell->getPos() + direction;
             if (nextPos.X() < 0 || nextPos.X() >= int(this->gcell_map[0].size()) || nextPos.Y() < 0 || nextPos.Y() >= int(this->gcell_map.size())) {
                 continue;
@@ -296,9 +322,9 @@ void D2DGR::A_star_search(int currentIdx, XYCoord sourcePos, XYCoord targetPos) 
 
             // Calculate the tentative g score
             GCell *prevGCell = (currentGCell->getPos() == sourcePos) ? nullptr : cameFrom[currentGCell];
-            Direction prevDir = (prevGCell == nullptr) ? Vertical : (prevGCell->getPos().X() == currentGCell->getPos().X()) ? Vertical : Horizontal;
-            bool isSameDir = (dir == prevDir);
-            double tentative_g = currentGCell->getg() + this->calculate_cost(currentGCell, dir, isSameDir);
+            XYCoord prevDir = (prevGCell) ? currentGCell->getPos() - prevGCell->getPos() : XYCoord(0, 1);
+            bool isSameDir = (direction == prevDir);
+            double tentative_g = currentGCell->getg() + this->calculate_cost(currentGCell, direction, isSameDir);
 
             // Check if the neighbor is in the open list
             bool inOpenList = openSet.find(nextGCell) != openSet.end();
@@ -323,16 +349,6 @@ void D2DGR::A_star_search(int currentIdx, XYCoord sourcePos, XYCoord targetPos) 
                 // DEBUG_D2DGR("Push (" + std::to_string(nextGCell->getPos().X()) + ", " + std::to_string(nextGCell->getPos().Y()) + ")" + " to open list");
             }
         }
-
-        // // Show the open list after each iteration
-        // std::priority_queue<GCell*, std::vector<GCell*>, GCell::Compare> tempQueue = openList;
-        // std::string openListStr = "Open List: ";
-        // while (!tempQueue.empty()) {
-        //     GCell *openGCell = tempQueue.top();
-        //     openListStr += "(" + std::to_string(openGCell->getPos().X()) + ", " + std::to_string(openGCell->getPos().Y()) + ", " + std::to_string(static_cast<int>(openGCell->getf())) + ") ";
-        //     tempQueue.pop();
-        // }
-        // DEBUG_D2DGR(openListStr);
     }
 }
 
@@ -358,9 +374,9 @@ void D2DGR::reconstruct_path(int currentIdx, std::unordered_map<GCell*, GCell*>&
         GCell *currentGCell = totalPath[i];
         GCell *prevGCell = totalPath[i - 1];
         GCell *nextGCell = totalPath[i + 1];
-        Direction dir1 = (currentGCell->getPos().X() == prevGCell->getPos().X()) ? Vertical : Horizontal;
-        Direction dir2 = (currentGCell->getPos().X() == nextGCell->getPos().X()) ? Vertical : Horizontal;
-        isVia[i] = (dir1 != dir2);
+        XYCoord direction1 = currentGCell->getPos() - prevGCell->getPos();
+        XYCoord direction2 = nextGCell->getPos() - currentGCell->getPos();
+        isVia[i] = (direction1 != direction2);
     }
 
     // Create path segments using via points
@@ -385,34 +401,55 @@ void D2DGR::reconstruct_path(int currentIdx, std::unordered_map<GCell*, GCell*>&
     Net *newNet = new Net(netName);
     std::vector<std::string> paths;
 
+    enum Direction {Up, Down, Left, Right};
     for (auto pathSegment : pathSegments) {
         XYCoord start = totalPath[pathSegment.first]->getLB();
         XYCoord end   = totalPath[pathSegment.second]->getLB();
-        Direction direction = (start.X() == end.X()) ? Vertical : Horizontal;
+        // Direction direction = (start.X() == end.X()) ? Vertical : Horizontal;
+        XYCoord direction = end - start;
+        Direction dir = Up;
+
+        if      (direction.X() > 0)    dir = Right;
+        else if (direction.X() < 0)    dir = Left;
+        else if (direction.Y() > 0)    dir = Up;
+        else if (direction.Y() < 0)    dir = Down;
 
         // Update the capacity of the GCells
         for (size_t i = pathSegment.first; i <= pathSegment.second; i++) {
             GCell *gcell = totalPath[i];
-            if (direction == Horizontal) {
-                gcell->addLeftEdgeUsage(1);
-            }
-            else {
-                gcell->addBottomEdgeUsage(1);
+            GCell *nextGcell = (i == pathSegment.second) ? nullptr : totalPath[i + 1];
+            switch (dir) {
+                case Right:
+                    gcell->add_R_Usage(1);
+                    if (nextGcell) nextGcell->add_L_Usage(1);
+                    break;
+                case Left:
+                    gcell->add_L_Usage(1);
+                    if (nextGcell) nextGcell->add_R_Usage(1);
+                    break;
+                case Up:
+                    gcell->add_U_Usage(1);
+                    if (nextGcell) nextGcell->add_D_Usage(1);
+                    break;
+                case Down:
+                    gcell->add_D_Usage(1);
+                    if (nextGcell) nextGcell->add_U_Usage(1);
+                    break;
             }
         }
 
         // Create the path
-        std::string metalType = (direction == Vertical) ? "M1" : "M2";
+        std::string metalType = (dir == Up || dir == Down) ? "M1" : "M2";
         std::string path = metalType + " " +
                            std::to_string(start.X()) + " " +
                            std::to_string(start.Y()) + " " +
                            std::to_string(end.X())   + " " +
                            std::to_string(end.Y());
-        if (pathSegment == pathSegments.front() && direction == Horizontal) {
+        if (pathSegment == pathSegments.front() && (dir == Left || dir == Right)) {
             newNet->addPath("via");
         }
         newNet->addPath(path);
-        if (pathSegment != pathSegments.back() || (pathSegment == pathSegments.back() && direction == Horizontal)) {
+        if (pathSegment != pathSegments.back() || (pathSegment == pathSegments.back() && (dir == Left || dir == Right))) {
             newNet->addPath("via");
         }
     }

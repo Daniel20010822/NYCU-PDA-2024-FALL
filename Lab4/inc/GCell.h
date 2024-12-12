@@ -14,11 +14,15 @@ private:
     XYCoord LB;  // Actual position of the GCell in the routing area
     XYCoord pos; // Position of the GCell in the GCell map
 
-    int leftEdgeCapacity = 0;
-    int bottomEdgeCapacity = 0;
-
-    int currentLeftEdgeUsage = 0;
-    int currentBottomEdgeUsage = 0;
+    int L_Capacity = 0;
+    int D_Capacity = 0;
+    int R_Capacity = 0;
+    int U_Capacity = 0;
+\
+    int L_Usage = 0;
+    int D_Usage = 0;
+    int R_Usage = 0;
+    int U_Usage = 0;
 
     double f = 0;
     double g = 0;
@@ -26,23 +30,45 @@ private:
 
 public:
     GCell();
-    GCell(XYCoord LB, XYCoord pos, int leftEdgeCapacity, int bottomEdgeCapacity);
+    GCell(XYCoord LB, XYCoord pos, int L_Capacity, int D_Capacity);
     ~GCell();
 
     XYCoord getLB()  const { return LB; }
     XYCoord getPos() const { return pos; }
 
-    void addLeftEdgeUsage(int capacity) { currentLeftEdgeUsage += capacity; }
-    void addBottomEdgeUsage(int capacity) { currentBottomEdgeUsage += capacity; }
+    void add_L_Usage(int usage) { L_Usage += usage; }
+    void add_D_Usage(int usage) { D_Usage += usage; }
+    void add_R_Usage(int usage) { R_Usage += usage; }
+    void add_U_Usage(int usage) { U_Usage += usage; }
 
-    int getLeftEdgeCapacity() const { return leftEdgeCapacity; }
-    int getBottomEdgeCapacity() const { return bottomEdgeCapacity; }
+    int get_L_CurrentUsage() const { return L_Usage; }
+    int get_D_CurrentUsage() const { return D_Usage; }
+    int get_R_CurrentUsage() const { return R_Usage; }
+    int get_U_CurrentUsage() const { return U_Usage; }
 
-    int getLeftEdgeUsage() const { return currentLeftEdgeUsage; }
-    int getBottomEdgeUsage() const { return currentBottomEdgeUsage; }
+    void set_L_Capacity(int capacity) { L_Capacity = capacity; }
+    void set_D_Capacity(int capacity) { D_Capacity = capacity; }
+    void set_R_Capacity(int capacity) { R_Capacity = capacity; }
+    void set_U_Capacity(int capacity) { U_Capacity = capacity; }
 
-    int getLeftExcessNum() const { return (currentLeftEdgeUsage > leftEdgeCapacity) ? currentLeftEdgeUsage - leftEdgeCapacity : 0; }
-    int getBottomExcessNum() const { return (currentBottomEdgeUsage > bottomEdgeCapacity) ? currentBottomEdgeUsage - bottomEdgeCapacity : 0; }
+    int get_L_Capacity() const { return L_Capacity; }
+    int get_D_Capacity() const { return D_Capacity; }
+    int get_R_Capacity() const { return R_Capacity; }
+    int get_U_Capacity() const { return U_Capacity; }
+
+
+
+    // void addLeftEdgeUsage(int capacity) { currentLeftEdgeUsage += capacity; }
+    // void addBottomEdgeUsage(int capacity) { currentBottomEdgeUsage += capacity; }
+
+    // int getLeftEdgeCapacity() const { return leftEdgeCapacity; }
+    // int getBottomEdgeCapacity() const { return bottomEdgeCapacity; }
+
+    // int getLeftEdgeUsage() const { return currentLeftEdgeUsage; }
+    // int getBottomEdgeUsage() const { return currentBottomEdgeUsage; }
+
+    // int getLeftExcessNum() const { return (currentLeftEdgeUsage > leftEdgeCapacity) ? currentLeftEdgeUsage - leftEdgeCapacity : 0; }
+    // int getBottomExcessNum() const { return (currentBottomEdgeUsage > bottomEdgeCapacity) ? currentBottomEdgeUsage - bottomEdgeCapacity : 0; }
 
     int manhattan_distance(XYCoord source, XYCoord target);
 
