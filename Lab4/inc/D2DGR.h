@@ -35,7 +35,7 @@ private:
     void parse_cst(std::string f_cst);
     double calculate_cost(GCell *currentGCell, XYCoord direction, bool isSameDir);
     void A_star_search(int currentIdx, XYCoord source, XYCoord target);
-    void reconstruct_path(int currentIdx, std::unordered_map<GCell*, GCell*>& cameFrom, GCell *targetGCell);
+    void reconstruct_path(int currentIdx, std::vector<GCell*>& cameFrom, GCell *targetGCell);
 
 public:
     D2DGR();

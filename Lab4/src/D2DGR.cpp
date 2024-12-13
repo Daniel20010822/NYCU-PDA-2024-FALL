@@ -193,6 +193,8 @@ void D2DGR::global_route() {
     Chip *chip1 = this->chips[0];
     Chip *chip2 = this->chips[1];
 
+    XYCoord gridSize(this->gridWidth, this->gridHeight);
+
     std::vector<int> allBumpIndecies = chip1->getBumpIndecies();
     for (int& bumpIdx : allBumpIndecies) {
         DEBUG_D2DGR("============== Pair " + std::to_string(bumpIdx) + " ==============");
@@ -201,8 +203,8 @@ void D2DGR::global_route() {
         DEBUG_D2DGR("Absolute Coordinate of current pair bumps: (" + std::to_string(source.X()) + ", " + std::to_string(source.Y()) + ") -> (" + std::to_string(target.X()) + ", " + std::to_string(target.Y()) + ")");
 
         // Convert source and target to GCell coordinates
-        XYCoord sourcePos = (source - this->areaLB) / XYCoord(this->gridWidth, this->gridHeight);
-        XYCoord targetPos = (target - this->areaLB) / XYCoord(this->gridWidth, this->gridHeight);
+        XYCoord sourcePos = (source - this->areaLB) / gridSize;
+        XYCoord targetPos = (target - this->areaLB) / gridSize;
         A_star_search(bumpIdx, sourcePos, targetPos);
     }
 }
@@ -272,8 +274,9 @@ void D2DGR::A_star_search(int currentIdx, XYCoord sourcePos, XYCoord targetPos) 
 
     // Initialize the open list and open set
     std::priority_queue<GCell*, std::vector<GCell*>, GCell::Compare> openList;
-    std::unordered_set<GCell*> openSet;
+    std::unordered_map<GCell*, bool> openSetMap;
     openList.push(sourceGCell);
+    openSetMap[sourceGCell] = true;
 
 
     // Initialize the closed list
@@ -285,7 +288,7 @@ void D2DGR::A_star_search(int currentIdx, XYCoord sourcePos, XYCoord targetPos) 
     sourceGCell->setf(sourceGCell->getg() + sourceGCell->geth());
 
     // Create a map to restore the path
-    std::unordered_map<GCell*, GCell*> cameFrom;
+    std::vector<GCell*> cameFrom(this->gcell_map.size() * this->gcell_map[0].size(), nullptr);
 
     // Iterate through the open list
     while (!openList.empty()) {
@@ -309,8 +312,6 @@ void D2DGR::A_star_search(int currentIdx, XYCoord sourcePos, XYCoord targetPos) 
         // Iterate through the neighbors
         XYCoord directions[] = {XYCoord(1, 0), XYCoord(0, 1), XYCoord(-1, 0), XYCoord(0, -1)}; // Right, Up, Left, Down
         for (XYCoord direction : directions) {
-
-
             XYCoord nextPos = currentGCell->getPos() + direction;
             if (nextPos.X() < 0 || nextPos.X() >= int(this->gcell_map[0].size()) || nextPos.Y() < 0 || nextPos.Y() >= int(this->gcell_map.size())) {
                 continue;
@@ -321,22 +322,16 @@ void D2DGR::A_star_search(int currentIdx, XYCoord sourcePos, XYCoord targetPos) 
             }
 
             // Calculate the tentative g score
-            GCell *prevGCell = (currentGCell->getPos() == sourcePos) ? nullptr : cameFrom[currentGCell];
+            GCell *prevGCell = (currentGCell->getPos() == sourcePos) ? nullptr : cameFrom[currentGCell->getPos().Y() * this->gcell_map[0].size() + currentGCell->getPos().X()];
             XYCoord prevDir = (prevGCell) ? currentGCell->getPos() - prevGCell->getPos() : XYCoord(0, 1);
             bool isSameDir = (direction == prevDir);
             double tentative_g = currentGCell->getg() + this->calculate_cost(currentGCell, direction, isSameDir);
 
             // Check if the neighbor is in the open list
-            bool inOpenList = openSet.find(nextGCell) != openSet.end();
+            bool inOpenList = openSetMap.find(nextGCell) != openSetMap.end();
 
             // Check if the path to the neighbor is better
-            bool isTenativeBetter = false;
-            if (!inOpenList) {
-                isTenativeBetter = true;
-            }
-            else if (tentative_g < nextGCell->getg()) {
-                isTenativeBetter = true;
-            }
+            bool isTenativeBetter = !inOpenList || tentative_g < nextGCell->getg();
 
             // This path is the best until now. Record it!
             if (isTenativeBetter) {
@@ -344,19 +339,19 @@ void D2DGR::A_star_search(int currentIdx, XYCoord sourcePos, XYCoord targetPos) 
                 nextGCell->seth(nextGCell->manhattan_distance(nextGCell->getLB(), targetGCell->getLB()));
                 nextGCell->setf(nextGCell->getg() + nextGCell->geth());
                 openList.push(nextGCell);
-                openSet.insert(nextGCell);
-                cameFrom[nextGCell] = currentGCell;
+                openSetMap[nextGCell] = true;
+                cameFrom[nextGCell->getPos().Y() * this->gcell_map[0].size() + nextGCell->getPos().X()] = currentGCell;
                 // DEBUG_D2DGR("Push (" + std::to_string(nextGCell->getPos().X()) + ", " + std::to_string(nextGCell->getPos().Y()) + ")" + " to open list");
             }
         }
     }
 }
 
-void D2DGR::reconstruct_path(int currentIdx, std::unordered_map<GCell*, GCell*>& cameFrom, GCell *targetGCell) {
+void D2DGR::reconstruct_path(int currentIdx, std::vector<GCell*>& cameFrom, GCell *targetGCell) {
     std::vector<GCell*> totalPath;
     totalPath.push_back(targetGCell);
-    while (cameFrom.find(targetGCell) != cameFrom.end()) {
-        targetGCell = cameFrom[targetGCell];
+    while (cameFrom[targetGCell->getPos().Y() * this->gcell_map[0].size() + targetGCell->getPos().X()] != nullptr) {
+        targetGCell = cameFrom[targetGCell->getPos().Y() * this->gcell_map[0].size() + targetGCell->getPos().X()];
         totalPath.push_back(targetGCell);
     }
     std::reverse(totalPath.begin(), totalPath.end());
@@ -383,14 +378,9 @@ void D2DGR::reconstruct_path(int currentIdx, std::unordered_map<GCell*, GCell*>&
     std::vector<std::pair<size_t, size_t>> pathSegments;
     size_t startIdx = 0;
     for (size_t i = 1; i < totalPath.size(); i++) {
-        if (isVia[i]) {
+        if (isVia[i] || i == totalPath.size() - 1) {
             pathSegments.push_back(std::make_pair(startIdx, i));
-            // DEBUG_D2DGR("Segment from " + std::to_string(startIdx) + " to " + std::to_string(i));
             startIdx = i;
-        }
-        else if (i == totalPath.size() - 1) {
-            pathSegments.push_back(std::make_pair(startIdx, i));
-            // DEBUG_D2DGR("Segment from " + std::to_string(startIdx) + " to " + std::to_string(i));
         }
     }
 
